@@ -1,3 +1,6 @@
+<img width="1983" height="793" alt="ChatGPT Image Aug 12, 2026, 11_29_36 PM" src="https://github.com/user-attachments/assets/9a991e3f-b57a-46e5-ad0f-f801f32978a5" />
+
+
 # Raspberry Pi Desk Clock & Weather Dashboard
 
 A smart desk clock powered by a Raspberry Pi 1, featuring dual MAX7219 LED matrices for multi-timezone clocks (Local & Manila) and a vibrant ST7735 TFT display serving as a live Vancouver weather dashboard with animated weather scenes.
