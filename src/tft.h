@@ -16,7 +16,7 @@ void tft_update(void);
 void tft_fill(uint16_t color);
 void tft_draw_pixel(int x, int y, uint16_t color);
 void tft_draw_text(int x, int y, const char* text, uint16_t color, int scale);
-void tft_draw_text_gradient(int x, int y, const char* str, uint16_t top_color, uint16_t bot_color, float scale, bool outline, uint16_t outline_color);
+void tft_draw_text_gradient(int x, int y, const char* str, uint16_t top_color, uint16_t bot_color);
 void tft_draw_highres_text(int x, int y, const char* text, uint16_t top_color, uint16_t bot_color, uint16_t outline_color);
 
 #endif
