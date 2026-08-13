@@ -60,11 +60,24 @@ int main(void) {
             char time_str[32];
             snprintf(time_str, sizeof(time_str), "%2d %02d  %c", hour, min, is_pm ? 'P' : 'A');
             
+            time_t manila_raw = rawtime + (8 * 3600); // UTC+8
+            struct tm * manila_info = gmtime(&manila_raw);
+            
+            int m_hour = manila_info->tm_hour;
+            int m_min = manila_info->tm_min;
+            int m_is_pm = (m_hour >= 12);
+            if (m_hour == 0) m_hour = 12;
+            if (m_hour > 12) m_hour -= 12;
+            
+            char time_str_bot[32];
+            snprintf(time_str_bot, sizeof(time_str_bot), "%2d %02d  %c", m_hour, m_min, m_is_pm ? 'P' : 'A');
+            
             uint8_t digits_top[8] = {0};
             uint8_t digits_bot[8] = {0};
-            for (int i = 0; i < 4; i++) {
+            
+            for (int i = 0; i < 8; i++) {
                 digits_top[i] = SEGMENT_MAP[(int)time_str[i]];
-                digits_bot[i] = SEGMENT_MAP[(int)time_str[i+4]];
+                digits_bot[i] = SEGMENT_MAP[(int)time_str_bot[i]];
             }
             
             for (int i = 0; i < 8; i++) {
