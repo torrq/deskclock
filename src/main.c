@@ -14,16 +14,26 @@
 #include "anim.h"
 
 static bool running = true;
-static bool is_sleeping = false;
+
+// Modes: 0=Both ON, 1=LED ON/TFT OFF, 2=LED OFF/TFT ON, 3=Both OFF
+static int display_mode = 0;
 
 void handle_sigint(int sig) {
     running = false;
 }
 
+void apply_display_mode() {
+    switch(display_mode) {
+        case 0: tft_sleep(0); max7219_sleep(0, 2); break;
+        case 1: tft_sleep(1); max7219_sleep(0, 2); break;
+        case 2: tft_sleep(0); max7219_sleep(1, 2); break;
+        case 3: tft_sleep(1); max7219_sleep(1, 2); break;
+    }
+}
+
 void handle_sigusr1(int sig) {
-    is_sleeping = !is_sleeping;
-    tft_sleep(is_sleeping);
-    max7219_sleep(is_sleeping, 2);
+    display_mode = (display_mode + 1) % 4;
+    apply_display_mode();
 }
 
 static const uint8_t SEGMENT_MAP[128] = {
@@ -95,7 +105,7 @@ int main(void) {
                 digits_bot[i] = SEGMENT_MAP[(int)time_str_bot[i]];
             }
             
-            if (!is_sleeping) {
+            if (display_mode == 0 || display_mode == 1) {
                 for (int i = 0; i < 8; i++) {
                     uint8_t data[2] = {digits_top[i], digits_bot[i]};
                     max7219_write_cmd_chain(8 - i, data, 2);
@@ -177,7 +187,7 @@ int main(void) {
         
         tft_draw_text_gradient(hum_x, 114, hum_text, 0xFFE0, 0x07E0); // Yellow to Green
         
-        if (!is_sleeping) {
+        if (display_mode == 0 || display_mode == 2) {
             tft_update();
         }
         
