@@ -14,9 +14,16 @@
 #include "anim.h"
 
 static bool running = true;
+static bool is_sleeping = false;
 
 void handle_sigint(int sig) {
     running = false;
+}
+
+void handle_sigusr1(int sig) {
+    is_sleeping = !is_sleeping;
+    tft_sleep(is_sleeping);
+    max7219_sleep(is_sleeping, 2);
 }
 
 static const uint8_t SEGMENT_MAP[128] = {
@@ -31,6 +38,7 @@ static const uint8_t SEGMENT_MAP[128] = {
 int main(void) {
     signal(SIGINT, handle_sigint);
     signal(SIGTERM, handle_sigint);
+    signal(SIGUSR1, handle_sigusr1);
 
     printf("Starting C DeskClock...\n");
     
@@ -80,9 +88,11 @@ int main(void) {
                 digits_bot[i] = SEGMENT_MAP[(int)time_str_bot[i]];
             }
             
-            for (int i = 0; i < 8; i++) {
-                uint8_t data[2] = {digits_top[i], digits_bot[i]};
-                max7219_write_cmd_chain(8 - i, data, 2);
+            if (!is_sleeping) {
+                for (int i = 0; i < 8; i++) {
+                    uint8_t data[2] = {digits_top[i], digits_bot[i]};
+                    max7219_write_cmd_chain(8 - i, data, 2);
+                }
             }
         }
         
@@ -160,7 +170,9 @@ int main(void) {
         
         tft_draw_text_gradient(hum_x, 114, hum_text, 0xFFE0, 0x07E0); // Yellow to Green
         
-        tft_update();
+        if (!is_sleeping) {
+            tft_update();
+        }
         
         usleep(100000); // 10 FPS
     }

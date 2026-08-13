@@ -126,3 +126,7 @@ void max7219_shutdown(void) {
         munmap((void*)gpio_map, BLOCK_SIZE);
     }
 }
+
+void max7219_sleep(int sleep_mode, int num_displays) {
+    max7219_send_command_all(0x0C, sleep_mode ? 0x00 : 0x01, num_displays);
+}

@@ -13,6 +13,7 @@
 
 #define DC_PIN 24
 #define RST_PIN 25
+#define LED_PIN 27
 
 #define BLOCK_SIZE (4*1024)
 
@@ -43,6 +44,7 @@ static int tft_gpio_init(void) {
     
     INP_GPIO(DC_PIN); OUT_GPIO(DC_PIN);
     INP_GPIO(RST_PIN); OUT_GPIO(RST_PIN);
+    INP_GPIO(LED_PIN); OUT_GPIO(LED_PIN);
     return 0;
 }
 
@@ -91,6 +93,7 @@ void tft_init(void) {
     
     // Hardware reset
     rst_high();
+    if (tft_gpio_map != MAP_FAILED) GPIO_SET = 1 << LED_PIN;
     usleep(50000);
     rst_low();
     usleep(50000);
@@ -128,6 +131,19 @@ void tft_init(void) {
 void tft_shutdown(void) {
     if (spi_fd >= 0) close(spi_fd);
     if (tft_gpio_map != MAP_FAILED) munmap((void*)tft_gpio_map, BLOCK_SIZE);
+}
+
+void tft_sleep(int sleep_mode) {
+    if (sleep_mode) {
+        if (tft_gpio_map != MAP_FAILED) GPIO_CLR = 1 << LED_PIN;
+        tft_command(0x28); // DISPOFF
+        tft_command(0x10); // SLPIN
+    } else {
+        if (tft_gpio_map != MAP_FAILED) GPIO_SET = 1 << LED_PIN;
+        tft_command(0x11); // SLPOUT
+        usleep(120000);    // Wait 120ms
+        tft_command(0x29); // DISPON
+    }
 }
 
 void tft_fill(uint16_t color) {
