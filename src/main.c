@@ -99,7 +99,7 @@ int main(void) {
             desc[i] = toupper((unsigned char)desc[i]);
         }
         
-        bool DEMO_MODE = true;
+        bool DEMO_MODE = false;
         if (DEMO_MODE) {
             const char* test_modes[] = {"CLEAR", "RAIN", "SNOW", "CLOUD"};
             strcpy(desc, test_modes[(rawtime / 5) % 4]);
