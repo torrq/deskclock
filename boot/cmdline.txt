@@ -1,0 +1,1 @@
+root=PARTUUID=2346666b-02 rootfstype=ext4 rootwait net.ifnames=0 logo.nologo console=tty1
