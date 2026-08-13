@@ -11,7 +11,7 @@
                   GPIO4 (7) (8)  GPIO14
                     GND (9) (10) GPIO15
     MAX7219 DIN → GPIO17(11)(12) GPIO18   ← MAX7219 CLK
-                 GPIO27(13)(14) GND
+     TFT LED    → GPIO27(13)(14) GND
     TFT CS      → GPIO22(15)(16) GPIO23   ← MAX7219 CS
           3V3   → (17)(18) GPIO24         ← TFT DC
     TFT MOSI    → GPIO10(19)(20) GND      ← TFT GND
@@ -43,7 +43,14 @@ Two MAX7219 modules daisy-chained: DOUT of first → DIN of second.
 | CS | GPIO 22 | Pin 15 | Kernel-managed via dtoverlay |
 | A0/DC | GPIO 24 | Pin 18 | Data/Command (mmap) |
 | RESET | GPIO 25 | Pin 22 | Reset (mmap) |
-| LED | — | Pin 1 | 3.3V backlight |
+| LED | GPIO 27 | Pin 13 | Backlight toggle (mmap) |
+
+### Physical Button (Display Toggle)
+
+| Button Pin | RPi GPIO | RPi Pin | Notes |
+|---|---|---|---|
+| Side 1 | GPIO 3 | Pin 5 | Internal hardware pull-up |
+| Side 2 | — | Pin 6 | Ground |
 
 ## Boot Configuration
 

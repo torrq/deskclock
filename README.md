@@ -10,6 +10,7 @@ A smart desk clock powered by a Raspberry Pi 1, featuring dual MAX7219 LED matri
 - **Dual-timezone LED clock** — Local time (top) and Manila/UTC+8 (bottom) on daisy-chained 7-segment displays
 - **Live weather dashboard** — Temperature with gradient 32x48 font, humidity with gradient 8x12 font
 - **Animated weather scenes** — Sun with rotating rays, twinkling stars with shooting comets, teardrop rain, geometric snowflakes, bouncing clouds
+- **Hardware display toggle** — Single physical button seamlessly cycles through 4 display modes (Both ON, LED ON, TFT ON, Both OFF)
 - **Pure C implementation** — Near-zero startup, minimal RAM/CPU, no Python runtime overhead
 - **No sudo required** — Direct `/dev/gpiomem` register access
 
@@ -32,9 +33,13 @@ Driven via **Hardware SPI (spidev)** for blazing-fast screen clears and drawing.
 * **A0/DC (Data/Command):** GPIO 24 (Pin 18)
 * **RESET:** GPIO 25 (Pin 22)
 * **CS (Chip Select):** GPIO 22 (Pin 15)
-* **LED (Backlight):** 3.3V (Pin 1)
+* **LED (Backlight):** GPIO 27 (Pin 13)
 * **VCC:** 3.3V (Pin 17)
 * **GND:** Ground (Pin 20)
+
+### 3. Hardware Button (Mode Toggle)
+* **Side 1:** GPIO 3 (Pin 5 - uses internal hardware pull-up)
+* **Side 2:** Ground (Pin 6)
 
 ## ⚠️ Critical Boot Configuration
 
