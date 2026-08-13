@@ -141,7 +141,13 @@ int main(void) {
         tft_draw_pixel(unit_x+2, 40 + (48 - 14)+3, unit_color);
         tft_draw_pixel(unit_x+3, 40 + (48 - 14)+3, unit_color);
         
-        tft_draw_text(160 - (strlen(hum)*6*1) - 4, 128 - 9, hum, 0xFFFF, 1);
+        char hum_text[32];
+        snprintf(hum_text, sizeof(hum_text), "HUM %s", hum);
+        int hum_w = strlen(hum_text) * 6;
+        int hum_x = (160 - hum_w) / 2;
+        if (hum_x < 0) hum_x = 0;
+        
+        tft_draw_text_gradient(hum_x, 112, hum_text, 0xFFE0, 0x07E0, 1); // Yellow to Green
         
         tft_update();
         
