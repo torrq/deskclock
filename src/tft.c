@@ -5,62 +5,60 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <sys/mman.h>
 #include <linux/spi/spidev.h>
 #include "tft.h"
 #include "fonts.h"
 
-// We use GPIO 24 for Data/Command control.
-// This requires it to be exported via sysfs before running, or we export it here.
 #define DC_PIN 24
 #define RST_PIN 25
 
+#define BLOCK_SIZE (4*1024)
+
 static int spi_fd = -1;
-static int dc_fd = -1;
-static int rst_fd = -1;
+static volatile uint32_t *tft_gpio_map = MAP_FAILED;
+
+#define INP_GPIO(g) *(tft_gpio_map+((g)/10)) &= ~(7<<(((g)%10)*3))
+#define OUT_GPIO(g) *(tft_gpio_map+((g)/10)) |=  (1<<(((g)%10)*3))
+
+#define GPIO_SET *(tft_gpio_map+7)
+#define GPIO_CLR *(tft_gpio_map+10)
 
 uint16_t tft_buffer[TFT_BUFFER_SIZE];
 
-static int gpio_export(int pin) {
-    char path[64];
-    int fd;
-    
-    // Export pin
-    fd = open("/sys/class/gpio/export", O_WRONLY);
-    if (fd < 0) {
-        perror("Failed to open /sys/class/gpio/export (are you running with sudo?)");
+static int tft_gpio_init(void) {
+    int mem_fd;
+    if ((mem_fd = open("/dev/gpiomem", O_RDWR|O_SYNC) ) < 0) {
+        perror("can't open /dev/gpiomem");
         return -1;
     }
-    char buf[8];
-    snprintf(buf, sizeof(buf), "%d", pin);
-    write(fd, buf, strlen(buf));
-    close(fd);
-    
-    // Set direction to out
-    snprintf(path, sizeof(path), "/sys/class/gpio/gpio%d/direction", pin);
-    usleep(100000); // wait for udev
-    fd = open(path, O_WRONLY);
-    if (fd < 0) {
-        printf("Failed to open %s\n", path);
+    tft_gpio_map = (uint32_t *)mmap(NULL, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, mem_fd, 0);
+    close(mem_fd);
+
+    if (tft_gpio_map == MAP_FAILED) {
+        perror("mmap error");
         return -1;
     }
-    write(fd, "out", 3);
-    close(fd);
     
-    // Open value file
-    snprintf(path, sizeof(path), "/sys/class/gpio/gpio%d/value", pin);
-    fd = open(path, O_WRONLY);
-    if (fd < 0) {
-        printf("Failed to open %s\n", path);
-    }
-    return fd;
+    INP_GPIO(DC_PIN); OUT_GPIO(DC_PIN);
+    INP_GPIO(RST_PIN); OUT_GPIO(RST_PIN);
+    return 0;
 }
 
 static void dc_high(void) {
-    if (dc_fd >= 0) write(dc_fd, "1", 1);
+    if (tft_gpio_map != MAP_FAILED) GPIO_SET = 1 << DC_PIN;
 }
 
 static void dc_low(void) {
-    if (dc_fd >= 0) write(dc_fd, "0", 1);
+    if (tft_gpio_map != MAP_FAILED) GPIO_CLR = 1 << DC_PIN;
+}
+
+static void rst_high(void) {
+    if (tft_gpio_map != MAP_FAILED) GPIO_SET = 1 << RST_PIN;
+}
+
+static void rst_low(void) {
+    if (tft_gpio_map != MAP_FAILED) GPIO_CLR = 1 << RST_PIN;
 }
 
 static void spi_write(uint8_t* data, size_t len) {
@@ -86,15 +84,16 @@ static void tft_data(uint8_t data) {
 }
 
 void tft_init(void) {
-    dc_fd = gpio_export(DC_PIN);
-    rst_fd = gpio_export(RST_PIN);
+    if (tft_gpio_init() < 0) {
+        printf("TFT GPIO Init failed.\n");
+    }
     
     // Hardware reset
-    if (rst_fd >= 0) write(rst_fd, "1", 1);
+    rst_high();
     usleep(50000);
-    if (rst_fd >= 0) write(rst_fd, "0", 1);
+    rst_low();
     usleep(50000);
-    if (rst_fd >= 0) write(rst_fd, "1", 1);
+    rst_high();
     usleep(100000);
     
     spi_fd = open("/dev/spidev0.0", O_RDWR);
@@ -127,8 +126,7 @@ void tft_init(void) {
 
 void tft_shutdown(void) {
     if (spi_fd >= 0) close(spi_fd);
-    if (dc_fd >= 0) close(dc_fd);
-    if (rst_fd >= 0) close(rst_fd);
+    if (tft_gpio_map != MAP_FAILED) munmap((void*)tft_gpio_map, BLOCK_SIZE);
 }
 
 void tft_fill(uint16_t color) {
