@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+#include <ctype.h>
 #include <stdbool.h>
 #include <unistd.h>
 #include <time.h>
@@ -41,14 +43,11 @@ int main(void) {
     
     while (running) {
         time_t rawtime;
-        struct tm * timeinfo;
         time(&rawtime);
+        struct tm timeinfo_buf;
+        struct tm * timeinfo = localtime_r(&rawtime, &timeinfo_buf);
         
-        // Offset for Manila time (UTC+8) if desired, or local time
-        // If we want local time, we just use localtime
-        timeinfo = localtime(&rawtime);
-        
-        if (timeinfo->tm_sec != last_sec) {
+        if (last_sec != timeinfo->tm_sec) {
             last_sec = timeinfo->tm_sec;
             
             int hour = timeinfo->tm_hour;
@@ -61,7 +60,8 @@ int main(void) {
             snprintf(time_str, sizeof(time_str), "%2d %02d  %c", hour, min, is_pm ? 'P' : 'A');
             
             time_t manila_raw = rawtime + (8 * 3600); // UTC+8
-            struct tm * manila_info = gmtime(&manila_raw);
+            struct tm manila_info_buf;
+            struct tm * manila_info = gmtime_r(&manila_raw, &manila_info_buf);
             
             int m_hour = manila_info->tm_hour;
             int m_min = manila_info->tm_min;
@@ -82,7 +82,7 @@ int main(void) {
             
             for (int i = 0; i < 8; i++) {
                 uint8_t data[2] = {digits_top[i], digits_bot[i]};
-                max7219_write_cmd_chain(i + 1, data, 2);
+                max7219_write_cmd_chain(8 - i, data, 2);
             }
         }
         
@@ -94,6 +94,10 @@ int main(void) {
         strcpy(desc, g_weather_data.desc);
         strcpy(hum, g_weather_data.hum);
         pthread_mutex_unlock(&g_weather_data.mutex);
+        
+        for (int i = 0; desc[i]; i++) {
+            desc[i] = toupper((unsigned char)desc[i]);
+        }
         
         anim_draw(desc, is_night);
         
