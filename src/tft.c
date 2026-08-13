@@ -13,8 +13,8 @@
 
 #define DC_PIN 24
 #define RST_PIN 25
-#define LED_PIN 27
-#define BUTTON_PIN 3
+#define LED_PIN 21
+#define BUTTON_PIN 1
 
 #define BLOCK_SIZE (4*1024)
 
