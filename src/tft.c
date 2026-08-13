@@ -214,53 +214,58 @@ void tft_draw_text(int x, int y, const char* str, uint16_t color, int scale) {
 // Forward declare interpolate_color
 static uint16_t interpolate_color(uint16_t c1, uint16_t c2, float t);
 
-void tft_draw_text_gradient(int x, int y, const char* str, uint16_t top_color, uint16_t bot_color, int scale, bool outline, uint16_t outline_color) {
+void tft_draw_text_gradient(int x, int y, const char* str, uint16_t top_color, uint16_t bot_color, float scale, bool outline, uint16_t outline_color) {
     int cx = x;
+    int out_w = (int)(5 * scale);
+    int out_h = (int)(7 * scale);
+    
     while (*str) {
         char c = *str++;
         int idx = get_char_index_5x7(c);
         if (idx >= 0) {
             if (outline) {
-                int o = (scale / 2) > 1 ? (scale / 2) : 1;
-                for (int r = 0; r < 7; r++) {
-                    uint8_t row = FONT_5X7[idx][r];
-                    for (int col = 0; col < 5; col++) {
-                        if ((row >> (4 - col)) & 1) {
-                            for (int dy = 0; dy < scale; dy++) {
-                                for (int dx = 0; dx < scale; dx++) {
-                                    int px = cx + col * scale + dx;
-                                    int py = y + r * scale + dy;
-                                    tft_draw_pixel(px - o, py - o, outline_color);
-                                    tft_draw_pixel(px, py - o, outline_color);
-                                    tft_draw_pixel(px + o, py - o, outline_color);
-                                    tft_draw_pixel(px - o, py, outline_color);
-                                    tft_draw_pixel(px + o, py, outline_color);
-                                    tft_draw_pixel(px - o, py + o, outline_color);
-                                    tft_draw_pixel(px, py + o, outline_color);
-                                    tft_draw_pixel(px + o, py + o, outline_color);
-                                }
-                            }
+                int o = (scale >= 2.0f) ? (int)(scale / 2.0f) : 1;
+                for (int dy = 0; dy < out_h; dy++) {
+                    for (int dx = 0; dx < out_w; dx++) {
+                        int src_x = (int)(dx / scale);
+                        int src_y = (int)(dy / scale);
+                        if (src_x >= 5) src_x = 4;
+                        if (src_y >= 7) src_y = 6;
+                        
+                        uint8_t row = FONT_5X7[idx][src_y];
+                        if ((row >> (4 - src_x)) & 1) {
+                            int px = cx + dx;
+                            int py = y + dy;
+                            tft_draw_pixel(px - o, py - o, outline_color);
+                            tft_draw_pixel(px, py - o, outline_color);
+                            tft_draw_pixel(px + o, py - o, outline_color);
+                            tft_draw_pixel(px - o, py, outline_color);
+                            tft_draw_pixel(px + o, py, outline_color);
+                            tft_draw_pixel(px - o, py + o, outline_color);
+                            tft_draw_pixel(px, py + o, outline_color);
+                            tft_draw_pixel(px + o, py + o, outline_color);
                         }
                     }
                 }
             }
             
-            for (int r = 0; r < 7; r++) {
-                uint8_t row = FONT_5X7[idx][r];
-                for (int col = 0; col < 5; col++) {
-                    if ((row >> (4 - col)) & 1) {
-                        for (int dy = 0; dy < scale; dy++) {
-                            float t = (float)(r * scale + dy) / (7 * scale);
-                            uint16_t color = interpolate_color(top_color, bot_color, t);
-                            for (int dx = 0; dx < scale; dx++) {
-                                tft_draw_pixel(cx + col * scale + dx, y + r * scale + dy, color);
-                            }
-                        }
+            for (int dy = 0; dy < out_h; dy++) {
+                float t = (float)dy / (out_h > 1 ? out_h - 1 : 1);
+                uint16_t color = interpolate_color(top_color, bot_color, t);
+                for (int dx = 0; dx < out_w; dx++) {
+                    int src_x = (int)(dx / scale);
+                    int src_y = (int)(dy / scale);
+                    if (src_x >= 5) src_x = 4;
+                    if (src_y >= 7) src_y = 6;
+                    
+                    uint8_t row = FONT_5X7[idx][src_y];
+                    if ((row >> (4 - src_x)) & 1) {
+                        tft_draw_pixel(cx + dx, y + dy, color);
                     }
                 }
             }
         }
-        cx += (5 + 2) * scale;
+        cx += (int)((5 + 2) * scale);
     }
 }
 
