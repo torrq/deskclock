@@ -1,6 +1,14 @@
 # Raspberry Pi Desk Clock & Weather Dashboard
 
-A smart desk clock powered by a Raspberry Pi 1, featuring dual MAX7219 LED matrices for multi-timezone clocks (Local & Manila) and a vibrant ST7735 TFT display serving as a live Vancouver weather dashboard.
+A smart desk clock powered by a Raspberry Pi 1, featuring dual MAX7219 LED matrices for multi-timezone clocks (Local & Manila) and a vibrant ST7735 TFT display serving as a live Vancouver weather dashboard with animated weather scenes.
+
+## Features
+
+- **Dual-timezone LED clock** — Local time (top) and Manila/UTC+8 (bottom) on daisy-chained 7-segment displays
+- **Live weather dashboard** — Temperature with gradient 32x48 font, humidity with gradient 8x12 font
+- **Animated weather scenes** — Sun with rotating rays, twinkling stars with shooting comets, teardrop rain, geometric snowflakes, bouncing clouds
+- **Pure C implementation** — Near-zero startup, minimal RAM/CPU, no Python runtime overhead
+- **No sudo required** — Direct `/dev/gpiomem` register access
 
 ## Hardware Configuration
 
@@ -29,7 +37,7 @@ Driven via **Hardware SPI (spidev)** for blazing-fast screen clears and drawing.
 
 To enable Hardware SPI for the TFT screen without conflicting with the Linux kernel, you **MUST** configure the Raspberry Pi's bootloader to natively map the SPI Chip Select signal to GPIO 22.
 
-Add the following line to your `/boot/config.txt` (or `/boot/firmware/config.txt` depending on your OS):
+Add the following lines to your `/boot/config.txt`:
 
 ```ini
 dtparam=spi=on
@@ -37,15 +45,43 @@ dtoverlay=spi0-1cs,cs0_pin=22
 ```
 *Note: You must reboot the Pi after making this change!*
 
-## Running the Clock
+## Building & Running
 
-Install the required dependencies (`spidev`, `RPi.GPIO`):
+### Prerequisites (DietPi/Debian)
 ```bash
-sudo apt-get install python3-spidev python3-rpi.gpio
+sudo apt install build-essential libcurl4-openssl-dev
 ```
 
-Start the dashboard:
+### Build
 ```bash
-python3 src/clock.py
+cd src
+make clean && make
 ```
-The script will run indefinitely, querying `wttr.in` every 15 minutes for live weather data.
+
+### Run
+```bash
+./deskclock
+```
+
+The clock will start immediately, showing the time on the LED matrices and fetching live weather data from [wttr.in](https://wttr.in) every 10 minutes.
+
+## Project Structure
+
+```
+├── src/
+│   ├── main.c          # Main 10 FPS loop, LED + TFT orchestration
+│   ├── tft.c / tft.h   # ST7735 SPI driver, framebuffer, text rendering
+│   ├── max7219.c / .h  # MAX7219 bitbang driver via /dev/gpiomem
+│   ├── weather.c / .h  # Background thread fetching weather via libcurl
+│   ├── anim.c / anim.h # Weather animations (sun, rain, snow, clouds, stars)
+│   ├── fonts.h         # 5x7 + 32x48 bitmap font arrays
+│   ├── font_8x12.h     # 8x12 Consolas-derived font for humidity
+│   └── Makefile
+├── clock.py            # Original Python implementation (reference)
+├── boot/               # Pi boot configuration reference
+└── AGENTS.md           # AI agent development rules
+```
+
+## Legacy Python Version
+
+The original Python implementation is preserved in `clock.py` for reference. It requires `python3-spidev` and `python3-rpi.gpio`. The C version supersedes it with significantly better performance.
