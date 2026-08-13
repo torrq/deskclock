@@ -1,0 +1,310 @@
+#!/bin/bash
+{
+	#////////////////////////////////////
+	# DietPi
+	#
+	#////////////////////////////////////
+	# Created by Daniel Knight / daniel.knight@dietpi.com / dietpi.com
+	#////////////////////////////////////
+	#
+	# Info:
+	# - Location: /boot/dietpi/func/dietpi-obtain_hw_model
+	# - Generates /boot/dietpi/.hw_model
+	# - Called from /boot/dietpi/preboot, called by /etc/systemd/system/dietpi-preboot.service
+	#
+	# G_HW_CPUID 0 Not set
+	# G_HW_CPUID 1 Allwinner H3
+	# G_HW_CPUID 2 Allwinner H5
+	# G_HW_CPUID 3 Rockchip RK3399
+	# G_HW_CPUID 4 Amlogic S922X
+	# G_HW_CPUID 5 Allwinner H6
+	# G_HW_CPUID 6 Rockchip RK3328
+	# G_HW_CPUID 7 Amlogic S905
+	# G_HW_CPUID 8 Allwinner A64
+	# G_HW_CPUID 9 Rockchip RK3566
+	# G_HW_CPUID 10 Rockchip RK3568
+	# G_HW_CPUID 11 Rockchip RK3588
+	# G_HW_CPUID 12 Rockchip RK3576
+	#////////////////////////////////////
+
+	#/////////////////////////////////////////////////////////////////////////////////////
+	# Obtain Hardware Model index
+	#/////////////////////////////////////////////////////////////////////////////////////
+	# Read .hw_model if existent to preserve existing G_HW_UUID
+	G_HW_UUID=
+	[[ -f '/boot/dietpi/.hw_model' ]] && . /boot/dietpi/.hw_model
+	[[ $G_HW_UUID ]] || read -r G_HW_UUID < /proc/sys/kernel/random/uuid
+	# - Fallback for containers which have no functional /proc/sys/kernel/random/uuid
+	[[ $G_HW_UUID ]] || G_HW_UUID=$(openssl rand -hex 16 | sed -E 's/^(.{8})(.{4})(.{4})(.{4})(.{12})$/\1-\2-\3-\4-\5/')
+
+	G_HW_MODEL=22
+	G_HW_MODEL_NAME='Generic Device'
+	G_HW_ARCH=0
+	G_HW_ARCH_NAME=$(uname -m)
+	G_HW_CPUID=0
+	G_HW_CPU_CORES=$(nproc --all)
+	G_ROOTFS_DEV=$(findmnt -Ufvnro SOURCE -M /)
+	G_DISTRO=0
+	G_DISTRO_NAME='Unknown'
+	G_HW_REVISION=
+
+	# RPi extras
+	G_RASPBIAN=0
+	G_HW_ONBOARD_WIFI=0
+	G_HW_PCB_REVISION='Unknown'
+	G_HW_MEMORY_SIZE=512
+	G_HW_MANUFACTURER='Unknown'
+
+	RPi_BoardInfo()
+	{
+		G_HW_MODEL=1
+		G_HW_MODEL_NAME='RPi (Unknown)'
+
+		# Detect if this is Raspbian/Raspberry Pi OS (32-bit) or Debian/Raspberry Pi OS (64-bit)
+		grep -q '^ID=raspbian' /etc/os-release && G_RASPBIAN=1
+
+		# Obtain device info by revision code: https://github.com/raspberrypi/documentation/blob/master/documentation/asciidoc/computers/raspberry-pi/revision-codes.adoc
+		G_HW_REVISION=$(mawk '/^Revision/{print $3;exit}' /proc/cpuinfo)
+
+		# New style revision codes: 6th hex char >= 8
+		if [[ ${G_HW_REVISION: -6:1} == [8-9a-f] ]]
+		then
+			# PCB revision
+			G_HW_PCB_REVISION=${G_HW_REVISION: -1:1}
+			# RPi model
+			case ${G_HW_REVISION: -3:2} in
+				00) G_HW_MODEL_NAME='RPi A';;
+				01) G_HW_MODEL_NAME='RPi B';;
+				02) G_HW_MODEL_NAME='RPi A+';;
+				03) G_HW_MODEL_NAME='RPi B+';;
+				04) G_HW_MODEL_NAME='RPi 2 Model B' G_HW_MODEL=2;;
+				05) G_HW_MODEL_NAME='RPi B';;
+				06) G_HW_MODEL_NAME='RPi CM';;
+				08) G_HW_MODEL_NAME='RPi 3 Model B' G_HW_MODEL=3 G_HW_ONBOARD_WIFI=1;;
+				09) G_HW_MODEL_NAME='RPi Zero';;
+				0a) G_HW_MODEL_NAME='RPi CM 3' G_HW_MODEL=3;;
+				0c) G_HW_MODEL_NAME='RPi Zero W' G_HW_ONBOARD_WIFI=1;;
+				0d) G_HW_MODEL_NAME='RPi 3 Model B+' G_HW_MODEL=3 G_HW_ONBOARD_WIFI=1;;
+				0e) G_HW_MODEL_NAME='RPi 3 Model A+' G_HW_MODEL=3 G_HW_ONBOARD_WIFI=1;;
+				10) G_HW_MODEL_NAME='RPi CM 3+' G_HW_MODEL=3;;
+				11) G_HW_MODEL_NAME='RPi 4 Model B' G_HW_MODEL=4 G_HW_ONBOARD_WIFI=1;;
+				12) G_HW_MODEL_NAME='RPi Zero 2 W'  G_HW_MODEL=3 G_HW_ONBOARD_WIFI=1;;
+				13) G_HW_MODEL_NAME='RPi 400' G_HW_MODEL=4 G_HW_ONBOARD_WIFI=1;;
+				14) G_HW_MODEL_NAME='RPi CM 4' G_HW_MODEL=4;;
+				15) G_HW_MODEL_NAME='RPi CM 4S' G_HW_MODEL=4;;
+				17) G_HW_MODEL_NAME='RPi 5 Model B' G_HW_MODEL=5 G_HW_ONBOARD_WIFI=1;;
+				18) G_HW_MODEL_NAME='RPi CM5' G_HW_MODEL=5;;
+				19) G_HW_MODEL_NAME='RPi 500/500+' G_HW_MODEL=5 G_HW_ONBOARD_WIFI=1;;
+				1a) G_HW_MODEL_NAME='RPi CM5 Lite' G_HW_MODEL=5;;
+				*) :;;
+			esac
+			# Manufacturer
+			case ${G_HW_REVISION: -5:1} in
+				0) G_HW_MANUFACTURER='Sony UK';;
+				1) G_HW_MANUFACTURER='Egoman';;
+				2|4) G_HW_MANUFACTURER='Embest';;
+				3) G_HW_MANUFACTURER='Sony Japan';;
+				5) G_HW_MANUFACTURER='Stadium';;
+				*) :;;
+			esac
+			# Memory size
+			G_HW_MEMORY_SIZE=$(( 256*2**( 16#${G_HW_REVISION: -6:1} - 8 ) ))
+			(( $G_HW_MEMORY_SIZE == 256 )) && G_HW_MODEL=0
+
+		# Old style revision codes
+		else
+			case $G_HW_REVISION in
+				*'Beta') G_HW_MODEL=0 G_HW_MODEL_NAME='RPi B' G_HW_MEMORY_SIZE=256;;
+				*'000'[23]) G_HW_MODEL=0 G_HW_MODEL_NAME='RPi B' G_HW_PCB_REVISION='1.0' G_HW_MEMORY_SIZE=256 G_HW_MANUFACTURER='Egoman';;
+				*'0004') G_HW_MODEL=0 G_HW_MODEL_NAME='RPi B' G_HW_PCB_REVISION='2.0' G_HW_MEMORY_SIZE=256 G_HW_MANUFACTURER='Sony UK';;
+				*'0005') G_HW_MODEL=0 G_HW_MODEL_NAME='RPi B' G_HW_PCB_REVISION='2.0' G_HW_MEMORY_SIZE=256 G_HW_MANUFACTURER='Qisda';;
+				*'0006') G_HW_MODEL=0 G_HW_MODEL_NAME='RPi B' G_HW_PCB_REVISION='2.0' G_HW_MEMORY_SIZE=256 G_HW_MANUFACTURER='Egoman';;
+				*'0007') G_HW_MODEL=0 G_HW_MODEL_NAME='RPi A' G_HW_PCB_REVISION='2.0' G_HW_MEMORY_SIZE=256 G_HW_MANUFACTURER='Egoman';;
+				*'0008') G_HW_MODEL=0 G_HW_MODEL_NAME='RPi A' G_HW_PCB_REVISION='2.0' G_HW_MEMORY_SIZE=256 G_HW_MANUFACTURER='Sony UK';;
+				*'0009') G_HW_MODEL=0 G_HW_MODEL_NAME='RPi A' G_HW_PCB_REVISION='2.0' G_HW_MEMORY_SIZE=256 G_HW_MANUFACTURER='Qisda';;
+				*'000'[df]) G_HW_MODEL_NAME='RPi B' G_HW_PCB_REVISION='2.0' G_HW_MANUFACTURER='Egoman';;
+				*'000e') G_HW_MODEL_NAME='RPi B' G_HW_PCB_REVISION='2.0' G_HW_MANUFACTURER='Sony UK';;
+				*'0010') G_HW_MODEL_NAME='RPi B+' G_HW_PCB_REVISION='1.2' G_HW_MANUFACTURER='Sony UK';;
+				*'0011') G_HW_MODEL_NAME='RPi CM' G_HW_PCB_REVISION='1.0' G_HW_MANUFACTURER='Sony UK';;
+				*'0012') G_HW_MODEL=0 G_HW_MODEL_NAME='RPi A+' G_HW_PCB_REVISION='1.1' G_HW_MEMORY_SIZE=256 G_HW_MANUFACTURER='Sony UK';;
+				*'0013') G_HW_MODEL_NAME='RPi B+' G_HW_PCB_REVISION='1.2' G_HW_MANUFACTURER='Embest';;
+				*'0014') G_HW_MODEL_NAME='RPi CM' G_HW_PCB_REVISION='1.0' G_HW_MANUFACTURER='Embest';;
+				*'0015')
+					G_HW_MODEL_NAME='RPi A+' G_HW_PCB_REVISION='1.1' G_HW_MANUFACTURER='Embest'
+					# 256M and 512M versions exist: Below estimation can be wrong, since GPU memory can take >256M on a 512M model
+					(( $(mawk '/^MemTotal:/{print $2;exit}' /proc/meminfo) < 262144 )) && G_HW_MODEL=0 G_HW_MEMORY_SIZE=256
+				;;
+				*) (( $G_HW_ARCH > 1 )) && G_HW_MODEL=2 # In case of ARMv7/8 architecture, if no model was detected, fall back to RPi 2.
+			esac
+		fi
+	}
+
+	# NB: PLEASE ENSURE HW_MODEL INDEX ENTRIES MATCH : dietpi-installer, dietpi-obtain_hw_model, dietpi-survey_results
+	# NBB: DO NOT REORDER INDEX's. These are now fixed and will never change (due to survey results etc)
+	Obtain_HW_Info()
+	{
+		# Get distro ID
+		local distro
+		read -r distro < /etc/debian_version
+		case $distro in
+			'14.'*|'forky/sid') G_DISTRO=9 G_DISTRO_NAME='forky';;
+			'13.'*) G_DISTRO=8 G_DISTRO_NAME='trixie';;
+			'12.'*) G_DISTRO=7 G_DISTRO_NAME='bookworm';;
+			'11.'*) G_DISTRO=6 G_DISTRO_NAME='bullseye';; # unsupported
+			'10.'*) G_DISTRO=5 G_DISTRO_NAME='buster';; # unsupported
+			'9.'*) G_DISTRO=4 G_DISTRO_NAME='stretch';; # unsupported
+			*) :;;
+		esac
+
+		# Obtain CPU architecture
+		case $G_HW_ARCH_NAME in
+			'armv6l') G_HW_ARCH=1;;
+			'armv7l') G_HW_ARCH=2;;
+			'aarch64') G_HW_ARCH=3;;
+			'x86_64') G_HW_ARCH=10;;
+			'riscv64') G_HW_ARCH=11;;
+			*) G_HW_ARCH_NAME+=' (Unsupported)';;
+		esac
+
+		# Systems that use /etc/.dietpi_hw_model_identifier for G_HW_MODEL
+		if [[ -f '/etc/.dietpi_hw_model_identifier' ]]
+		then
+			read -r G_HW_MODEL < /etc/.dietpi_hw_model_identifier
+			local model # in case we want to read the revision from /proc/device-tree/model
+
+			case $G_HW_MODEL in
+				105) G_HW_MODEL_NAME='Orange Pi 4 LTS' G_HW_CPUID=3;;
+				104) G_HW_MODEL_NAME='NanoPi Zero2';;
+				103) G_HW_MODEL_NAME='NanoPi M5' G_HW_CPUID=12;;
+				102) G_HW_MODEL_NAME='NanoPi R76S' G_HW_CPUID=12;;
+				101) G_HW_MODEL_NAME='NanoPi R3S LTS' G_HW_CPUID=9;;
+				100) G_HW_MODEL_NAME='NanoPi R3S' G_HW_CPUID=9;;
+				99) G_HW_MODEL_NAME='Orange Pi 3';;
+				98) G_HW_MODEL_NAME='Orange Pi RV2';;
+				97) G_HW_MODEL_NAME='Orange Pi RV';;
+				96) G_HW_MODEL_NAME='Orange Pi 4A';;
+				95) G_HW_MODEL_NAME='Orange Pi CM5' G_HW_CPUID=11;;
+				94) G_HW_MODEL_NAME='Orange Pi 5 Ultra' G_HW_CPUID=11;;
+				93) G_HW_MODEL_NAME='Orange Pi 5 Pro' G_HW_CPUID=11;;
+				92) G_HW_MODEL_NAME='NanoPi M6' G_HW_CPUID=11;;
+				91) G_HW_MODEL_NAME='Orange Pi 5 Max' G_HW_CPUID=11;;
+				90) G_HW_MODEL_NAME='Radxa ZERO 3' G_HW_CPUID=9;;
+				89) G_HW_MODEL_NAME='Orange Pi 3 LTS' G_HW_CPUID=5;;
+				88) G_HW_MODEL_NAME='Orange Pi Zero 2W';;
+				87)
+					G_HW_MODEL_NAME='Orange Pi 3B' G_HW_CPUID=9
+					read -r model < /proc/device-tree/model
+					[[ $model == *'v1.1' ]] && G_HW_REVISION='1.1' || G_HW_REVISION='2.1'
+				;;
+				86) G_HW_MODEL_NAME='ASUS Tinker Board 2' G_HW_CPUID=3;;
+				85) G_HW_MODEL_NAME='ROCK 5A' G_HW_CPUID=11;;
+				84) G_HW_MODEL_NAME='Star64';;
+				83) G_HW_MODEL_NAME='Orange Pi Zero 3';;
+				82) G_HW_MODEL_NAME='Orange Pi 5 Plus' G_HW_CPUID=11;;
+				81) G_HW_MODEL_NAME='StarFive VisionFive 2';;
+				80) G_HW_MODEL_NAME='Orange Pi 5' G_HW_CPUID=11;;
+				79) G_HW_MODEL_NAME='NanoPi 6 series' G_HW_CPUID=11;;
+				78) G_HW_MODEL_NAME='ROCK 5B' G_HW_CPUID=11;;
+				77) G_HW_MODEL_NAME='ROCK 3A' G_HW_CPUID=10;;
+				76) G_HW_MODEL_NAME='NanoPi R5S/R5C' G_HW_CPUID=10;;
+				75)
+					G_HW_MODEL_NAME='Container'
+					grep -q '^ID=raspbian' /etc/os-release && G_RASPBIAN=1
+				;;
+				74) G_HW_MODEL_NAME='Radxa Zero';;
+				73) G_HW_MODEL_NAME='ROCK Pi S';;
+				72) G_HW_MODEL_NAME='ROCK 4' G_HW_CPUID=3;;
+				68) G_HW_MODEL_NAME='NanoPi M4/T4/NEO4' G_HW_CPUID=3;;
+				67) G_HW_MODEL_NAME='NanoPi K1 Plus' G_HW_CPUID=2;;
+				66) G_HW_MODEL_NAME='NanoPi M1 Plus' G_HW_CPUID=1;;
+				65) G_HW_MODEL_NAME='NanoPi NEO2' G_HW_CPUID=2;;
+				64) G_HW_MODEL_NAME='NanoPi NEO Air' G_HW_CPUID=1;;
+				63) G_HW_MODEL_NAME='NanoPi M1' G_HW_CPUID=1;;
+				60) G_HW_MODEL_NAME='NanoPi NEO' G_HW_CPUID=1;;
+				59) G_HW_MODEL_NAME='ZeroPi' G_HW_CPUID=1;;
+				58) G_HW_MODEL_NAME='NanoPi M4V2' G_HW_CPUID=3;;
+				57) G_HW_MODEL_NAME='NanoPi NEO Plus2' G_HW_CPUID=2;;
+				56) G_HW_MODEL_NAME='NanoPi NEO3' G_HW_CPUID=6;;
+				55) G_HW_MODEL_NAME='NanoPi R2S' G_HW_CPUID=6;;
+				54) G_HW_MODEL_NAME='NanoPi K2' G_HW_CPUID=7;;
+				52) G_HW_MODEL_NAME='ASUS Tinker Board';;
+				49) G_HW_MODEL_NAME='Quartz64' G_HW_CPUID=9;;
+				48) G_HW_MODEL_NAME='NanoPi R1' G_HW_CPUID=1;;
+				47) G_HW_MODEL_NAME='NanoPi R4S' G_HW_CPUID=3;;
+				46) G_HW_MODEL_NAME='Pinebook Pro' G_HW_CPUID=3;;
+				45) G_HW_MODEL_NAME='PINE H64' G_HW_CPUID=5;;
+				44) G_HW_MODEL_NAME='Pinebook' G_HW_CPUID=8;;
+				43) G_HW_MODEL_NAME='ROCK64' G_HW_CPUID=6;;
+				42) G_HW_MODEL_NAME='ROCKPro64' G_HW_CPUID=3;;
+				40) G_HW_MODEL_NAME='PINE A64' G_HW_CPUID=8;;
+				29) G_HW_MODEL_NAME='Generic Amlogic S922X' G_HW_CPUID=4;;
+				28) G_HW_MODEL_NAME='Generic Amlogic S905' G_HW_CPUID=7;;
+				27) G_HW_MODEL_NAME='Generic Allwinner H6' G_HW_CPUID=5;;
+				26) G_HW_MODEL_NAME='Generic Allwinner H5' G_HW_CPUID=2;;
+				25) G_HW_MODEL_NAME='Generic Allwinner H3' G_HW_CPUID=1;;
+				24) G_HW_MODEL_NAME='Generic Rockchip RK3399' G_HW_CPUID=3;;
+				23) G_HW_MODEL_NAME='Generic Rockchip RK3328' G_HW_CPUID=6;;
+				22) :;;
+				21) G_HW_MODEL_NAME='Native PC';;
+				20) G_HW_MODEL_NAME='Virtual Machine';;
+				17) G_HW_MODEL_NAME='Odroid HC4';;
+				16) G_HW_MODEL_NAME='Odroid C4';;
+				15) G_HW_MODEL_NAME='Odroid N2' G_HW_CPUID=4;;
+				12) G_HW_MODEL_NAME='Odroid C2' G_HW_CPUID=7;;
+				11) G_HW_MODEL_NAME='Odroid XU3/XU4/MC1/HC1/HC2';;
+				10) G_HW_MODEL_NAME='Odroid C1';;
+				*)
+					# Unknown hardware ID, revert to "Generic Device"
+					G_HW_MODEL=22
+					echo "$G_HW_MODEL" > /etc/.dietpi_hw_model_identifier
+				;;
+			esac
+
+		# RPi? Detect via ondisk device tree file instead of /proc content, for chroot/systemd-nspawn support
+		elif for i in /boot/{,firmware/}bcm*-rpi-*\.dtb; do [[ -f $i ]] && break; done
+		then
+			# Detect exact RPi model
+			RPi_BoardInfo
+		fi
+
+		# Add CPU arch to device name
+		G_HW_MODEL_NAME+=" ($G_HW_ARCH_NAME)"
+
+		# Save data
+		echo "G_HW_MODEL=$G_HW_MODEL
+G_HW_MODEL_NAME='$G_HW_MODEL_NAME'
+G_HW_ARCH=$G_HW_ARCH
+G_HW_ARCH_NAME='$G_HW_ARCH_NAME'
+G_HW_CPUID=$G_HW_CPUID
+G_HW_CPU_CORES=$G_HW_CPU_CORES
+G_DISTRO=$G_DISTRO
+G_DISTRO_NAME='$G_DISTRO_NAME'
+G_ROOTFS_DEV='$G_ROOTFS_DEV'
+G_HW_UUID='$G_HW_UUID'" > /boot/dietpi/.hw_model
+
+		# - Board revision if given
+		[[ $G_HW_REVISION ]] && echo "G_HW_REVISION='$G_HW_REVISION'" >> /boot/dietpi/.hw_model
+
+		# - RPi extras
+		if (( $G_HW_MODEL < 10 ))
+		then
+			echo "G_RASPBIAN=$G_RASPBIAN
+G_HW_ONBOARD_WIFI=$G_HW_ONBOARD_WIFI
+G_HW_PCB_REVISION=$G_HW_PCB_REVISION
+G_HW_MEMORY_SIZE=$G_HW_MEMORY_SIZE
+G_HW_MANUFACTURER='$G_HW_MANUFACTURER'" >> /boot/dietpi/.hw_model
+
+		# - ARMv6 containers use Raspbian as well
+		elif (( $G_HW_MODEL == 75 && $G_RASPBIAN == 1 ))
+		then
+			echo 'G_RASPBIAN=1' >> /boot/dietpi/.hw_model
+		fi
+	}
+
+	#-----------------------------------------------------------------------------------
+	# Main
+	Obtain_HW_Info
+	#-----------------------------------------------------------------------------------
+	exit 0
+	#-----------------------------------------------------------------------------------
+}
