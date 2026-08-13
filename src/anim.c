@@ -33,6 +33,22 @@ static Particle flakes[4];
 static Star stars[30];
 static Comet comet = {0};
 
+static const int drop_pixels[][2] = {
+    {0,0}, {0,1}, 
+    {-1,2}, {0,2}, {1,2}, 
+    {-2,3}, {-1,3}, {0,3}, {1,3}, {2,3}, 
+    {-2,4}, {-1,4}, {0,4}, {1,4}, {2,4}, 
+    {-1,5}, {0,5}, {1,5}
+};
+static const int num_drop_pixels = 18;
+
+typedef struct {
+    int x; int y;
+} Point;
+
+static Point large_flake_pixels[100];
+static int num_flake_pixels = 0;
+
 static int random_x(void) {
     return 2 + (rand() % 36);
 }
@@ -51,6 +67,33 @@ void anim_init(void) {
     for (int i = 0; i < 30; i++) {
         stars[i].x = rand() % 160;
         stars[i].y = rand() % 128;
+    }
+    
+    // Generate snowflake pixels like Python
+    int radius = 8;
+    for (int i = 0; i < 8; i++) {
+        float angle = i * 45 * 3.14159f / 180.0;
+        for (int r = 0; r < radius; r++) {
+            large_flake_pixels[num_flake_pixels].x = (int)(cos(angle) * r);
+            large_flake_pixels[num_flake_pixels].y = (int)(sin(angle) * r);
+            num_flake_pixels++;
+        }
+    }
+    for (int i = 0; i < 4; i++) {
+        float angle = i * 90 * 3.14159f / 180.0;
+        int fork_r = 4;
+        int fx = (int)(cos(angle) * fork_r);
+        int fy = (int)(sin(angle) * fork_r);
+        float left_angle = angle + 45 * 3.14159f / 180.0;
+        float right_angle = angle - 45 * 3.14159f / 180.0;
+        for (int d = 1; d < 4; d++) {
+            large_flake_pixels[num_flake_pixels].x = (int)(fx + cos(left_angle)*d);
+            large_flake_pixels[num_flake_pixels].y = (int)(fy + sin(left_angle)*d);
+            num_flake_pixels++;
+            large_flake_pixels[num_flake_pixels].x = (int)(fx + cos(right_angle)*d);
+            large_flake_pixels[num_flake_pixels].y = (int)(fy + sin(right_angle)*d);
+            num_flake_pixels++;
+        }
     }
 }
 
@@ -134,10 +177,10 @@ void anim_draw(const char* desc, bool is_night) {
             }
             
             for (int i = 0; i < 12; i++) {
-                float angle = (i * 30 + tick * 0.5) * 3.14159 / 180.0;
+                float angle = (i * 30 + tick * 0.5) * 3.14159f / 180.0;
                 for (int r = radius + 5; r < radius + 35; r++) {
-                    int rx = (int)(cx + cos(angle) * r);
-                    int ry = (int)(cy + sin(angle) * r);
+                    int rx = cx + (int)(cos(angle) * r);
+                    int ry = cy + (int)(sin(angle) * r);
                     tft_draw_pixel(rx, ry, 0xFD20);
                     tft_draw_pixel(rx+1, ry, 0xFD20);
                     tft_draw_pixel(rx, ry+1, 0xFD20);
@@ -148,12 +191,12 @@ void anim_draw(const char* desc, bool is_night) {
     } else if (strstr(desc, "RAIN") || strstr(desc, "DRIZZLE") || strstr(desc, "SHOWER")) {
         tft_fill(0x0000);
         for (int i = 0; i < 8; i++) {
-            tft_draw_pixel(drops[i].x, drops[i].y, 0x07FF);
-            tft_draw_pixel(drops[i].x, drops[i].y - 1, 0x07FF);
-            tft_draw_pixel(drops[i].x, drops[i].y - 2, 0x001F);
+            for (int p = 0; p < num_drop_pixels; p++) {
+                tft_draw_pixel(drops[i].x + drop_pixels[p][0], drops[i].y + drop_pixels[p][1], 0x03FF);
+            }
             
-            drops[i].y += drops[i].speed;
-            if (drops[i].y > 128 + 5) {
+            drops[i].y += 2; // Slower rain
+            if (drops[i].y > 128) {
                 drops[i].y = -5;
                 drops[i].x = random_x();
             }
@@ -163,14 +206,17 @@ void anim_draw(const char* desc, bool is_night) {
         for (int i = 0; i < 4; i++) {
             int fx = flakes[i].x;
             int fy = flakes[i].y;
+            int speed = flakes[i].speed;
             
-            tft_draw_pixel(fx, fy, 0xFFFF);
-            tft_draw_pixel(fx+1, fy, 0xFFFF);
-            tft_draw_pixel(fx, fy+1, 0xFFFF);
-            tft_draw_pixel(fx+1, fy+1, 0xFFFF);
+            for (int p = 0; p < num_flake_pixels; p++) {
+                tft_draw_pixel(fx + large_flake_pixels[p].x, fy + large_flake_pixels[p].y, 0xFFFF);
+            }
             
-            flakes[i].y += flakes[i].speed;
-            flakes[i].x += (int)(sin(tick * 0.1 + i) * 2.0);
+            if (tick % (3 - speed) == 0) {
+                flakes[i].y += 1;
+            }
+            
+            flakes[i].x += (int)(sin(tick * 0.1 + i));
             
             if (flakes[i].y > 128 + 10) {
                 flakes[i].y = -10;
