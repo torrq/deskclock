@@ -14,6 +14,7 @@
 #define DC_PIN 24
 #define RST_PIN 25
 #define LED_PIN 27
+#define BUTTON_PIN 3
 
 #define BLOCK_SIZE (4*1024)
 
@@ -45,6 +46,9 @@ static int tft_gpio_init(void) {
     INP_GPIO(DC_PIN); OUT_GPIO(DC_PIN);
     INP_GPIO(RST_PIN); OUT_GPIO(RST_PIN);
     INP_GPIO(LED_PIN); OUT_GPIO(LED_PIN);
+    
+    // Set BUTTON_PIN as input (Hardware pull-up to 3.3V on GPIO 3)
+    INP_GPIO(BUTTON_PIN);
     return 0;
 }
 
@@ -144,6 +148,12 @@ void tft_sleep(int sleep_mode) {
         usleep(120000);    // Wait 120ms
         tft_command(0x29); // DISPON
     }
+}
+
+int get_button_state(void) {
+    if (tft_gpio_map == MAP_FAILED) return 1; // Default HIGH (unpressed)
+    // GPLEV0 is at word offset 13 (0x34 bytes)
+    return (*(tft_gpio_map + 13) & (1 << BUTTON_PIN)) ? 1 : 0;
 }
 
 void tft_fill(uint16_t color) {

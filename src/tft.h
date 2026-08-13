@@ -13,6 +13,7 @@ extern uint16_t tft_buffer[TFT_BUFFER_SIZE];
 void tft_init(void);
 void tft_shutdown(void);
 void tft_sleep(int sleep_mode);
+int get_button_state(void);
 void tft_update(void);
 void tft_fill(uint16_t color);
 void tft_draw_pixel(int x, int y, uint16_t color);

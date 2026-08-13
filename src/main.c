@@ -48,8 +48,15 @@ int main(void) {
     weather_init();
     
     int last_sec = -1;
+    int last_btn_state = 1;
     
     while (running) {
+        int btn = get_button_state();
+        if (btn == 0 && last_btn_state == 1) { // Falling edge (pressed)
+            handle_sigusr1(SIGUSR1);
+        }
+        last_btn_state = btn;
+        
         time_t rawtime;
         time(&rawtime);
         struct tm timeinfo_buf;
