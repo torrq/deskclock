@@ -73,19 +73,7 @@ void anim_draw(const char* desc, bool is_night) {
                 }
             }
             
-            int cx = 80, cy = 64;
-            int radius = 45;
-            for (int y = cy - radius; y < cy + radius; y++) {
-                for (int x = cx - radius; x < cx + radius; x++) {
-                    int dist_sq = (x - cx)*(x - cx) + (y - cy)*(y - cy);
-                    if (dist_sq <= radius*radius) {
-                        int dist_sq_sub = (x - (cx + 15))*(x - (cx + 15)) + (y - (cy - 15))*(y - (cy - 15));
-                        if (dist_sq_sub > (radius - 7)*(radius - 7)) {
-                            tft_draw_pixel(x, y, 0xFFE0);
-                        }
-                    }
-                }
-            }
+            // Moon disabled by request
             
             if (comet.active) {
                 int sx = (int)comet.x;

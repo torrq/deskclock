@@ -99,6 +99,12 @@ int main(void) {
             desc[i] = toupper((unsigned char)desc[i]);
         }
         
+        bool DEMO_MODE = true;
+        if (DEMO_MODE) {
+            const char* test_modes[] = {"CLEAR", "RAIN", "SNOW", "CLOUD"};
+            strcpy(desc, test_modes[(rawtime / 5) % 4]);
+        }
+        
         anim_draw(desc, is_night);
         
         uint16_t temp_color_top, temp_color_bot, outline_color, unit_color;
