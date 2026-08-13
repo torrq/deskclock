@@ -1,3 +1,6 @@
 /boot
-old/WiringPi/
-old/ledcontrol/LedControl/
+__pycache__/
+*.pyc
+*.o
+src/deskclock
+old/
