@@ -77,11 +77,10 @@ The clock will start immediately, showing the time on the LED matrices and fetch
 │   ├── fonts.h         # 5x7 + 32x48 bitmap font arrays
 │   ├── font_8x12.h     # 8x12 Consolas-derived font for humidity
 │   └── Makefile
-├── clock.py            # Original Python implementation (reference)
-├── boot/               # Pi boot configuration reference
+├── legacy/clock.py       # Original Python implementation (reference)
 └── AGENTS.md           # AI agent development rules
 ```
 
 ## Legacy Python Version
 
-The original Python implementation is preserved in `clock.py` for reference. It requires `python3-spidev` and `python3-rpi.gpio`. The C version supersedes it with significantly better performance.
+The original Python implementation is preserved in `legacy/clock.py` for reference. It requires `python3-spidev` and `python3-rpi.gpio`. The C version supersedes it with significantly better performance.

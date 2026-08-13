@@ -10,14 +10,14 @@ Pillow/PIL dependencies on the Pi.
 
 ### 1. FONT_5X7 (`fonts.h`)
 - **Size**: 5 pixels wide × 7 pixels tall
-- **Source**: Extracted from `FONT_5x7` dict in `clock.py` via AST parsing
+- **Source**: Extracted from `FONT_5x7` dict in `legacy/clock.py` via AST parsing
 - **Used for**: Temperature unit text ("°C"), small labels
 - **Encoding**: `uint8_t[N][7]` — each row is a 5-bit pattern (MSB = leftmost pixel)
 - **Lookup**: Linear search via `CHARS_5X7[]` character array
 
 ### 2. FONT_32X48 (`fonts.h`)
 - **Size**: 32 pixels wide × 48 pixels tall
-- **Source**: Extracted from `FONT_32x48` dict in `clock.py` via AST parsing
+- **Source**: Extracted from `FONT_32x48` dict in `legacy/clock.py` via AST parsing
 - **Used for**: Large temperature digits with gradient fill and outline
 - **Encoding**: `uint32_t[N][48]` — each row is a 32-bit bitmask
 - **Lookup**: Linear search via `CHARS_32X48[]` character array
@@ -32,8 +32,8 @@ Pillow/PIL dependencies on the Pi.
 
 ## Regenerating Fonts
 
-### 5x7 and 32x48 (from clock.py)
-Use the export script to parse `clock.py`'s font dictionaries via Python AST:
+### 5x7 and 32x48 (from legacy/clock.py)
+Use the export script to parse `legacy/clock.py`'s font dictionaries via Python AST:
 ```bash
 python scratch/export_fonts.py
 ```
@@ -56,6 +56,6 @@ This outputs `src/font_8x12.h`.
 
 ## Adding Characters
 
-1. For 5x7/32x48: Add the glyph to the Python dict in `clock.py`, re-run `export_fonts.py`
+1. For 5x7/32x48: Add the glyph to the Python dict in `legacy/clock.py`, re-run `export_fonts.py`
 2. For 8x12: The full ASCII 32-127 range is already covered
 3. **Always** ensure displayed text only contains mapped characters — unmapped chars cause out-of-bounds reads

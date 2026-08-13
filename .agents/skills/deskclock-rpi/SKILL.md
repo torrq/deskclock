@@ -56,7 +56,7 @@ src/
 ├── max7219.c / .h  # MAX7219 bitbang driver (mmap GPIO)
 ├── weather.c / .h  # Background pthread fetching wttr.in via libcurl
 ├── anim.c / anim.h # Weather animations (sun, rain, snow, cloud, stars, comet)
-├── fonts.h         # 5x7 + 32x48 bitmap font arrays (generated from clock.py)
+├── fonts.h         # 5x7 + 32x48 bitmap font arrays (generated from legacy/clock.py)
 ├── font_8x12.h     # 8x12 Consolas-derived font (generated via Pillow)
 └── Makefile        # gcc -O3 -std=gnu99, links -lpthread -lcurl -lm
 ```
