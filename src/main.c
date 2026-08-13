@@ -154,11 +154,11 @@ int main(void) {
         
         char hum_text[32];
         snprintf(hum_text, sizeof(hum_text), "HUM %s", hum);
-        int hum_w = strlen(hum_text) * 6;
+        int hum_w = strlen(hum_text) * 7;
         int hum_x = (160 - hum_w) / 2;
         if (hum_x < 0) hum_x = 0;
         
-        tft_draw_text_gradient(hum_x, 115, hum_text, 0xFFE0, 0x07E0, 1); // Yellow to Green
+        tft_draw_text_gradient(hum_x, 115, hum_text, 0xFFE0, 0x07E0, 1, true, 0x0000); // Yellow to Green
         
         tft_update();
         
