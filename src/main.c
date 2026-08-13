@@ -141,19 +141,24 @@ int main(void) {
         int unit_x = num_start_x + (strlen(temp_num) * 34) + 2;
         tft_draw_text(unit_x, 40 + (48 - 14), " C", unit_color, 2);
         
-        // Degree symbol
-        tft_draw_pixel(unit_x+2, 40 + (48 - 14)+2, unit_color);
-        tft_draw_pixel(unit_x+3, 40 + (48 - 14)+2, unit_color);
-        tft_draw_pixel(unit_x+2, 40 + (48 - 14)+3, unit_color);
-        tft_draw_pixel(unit_x+3, 40 + (48 - 14)+3, unit_color);
+        // Degree symbol (hollow ring)
+        int ring_y = 40 + (48 - 14) + 2;
+        tft_draw_pixel(unit_x+2, ring_y, unit_color);
+        tft_draw_pixel(unit_x+3, ring_y, unit_color);
+        tft_draw_pixel(unit_x+1, ring_y+1, unit_color);
+        tft_draw_pixel(unit_x+4, ring_y+1, unit_color);
+        tft_draw_pixel(unit_x+1, ring_y+2, unit_color);
+        tft_draw_pixel(unit_x+4, ring_y+2, unit_color);
+        tft_draw_pixel(unit_x+2, ring_y+3, unit_color);
+        tft_draw_pixel(unit_x+3, ring_y+3, unit_color);
         
         char hum_text[32];
         snprintf(hum_text, sizeof(hum_text), "HUM %s", hum);
-        int hum_w = strlen(hum_text) * 6;
+        int hum_w = strlen(hum_text) * 12;
         int hum_x = (160 - hum_w) / 2;
         if (hum_x < 0) hum_x = 0;
         
-        tft_draw_text_gradient(hum_x, 112, hum_text, 0xFFE0, 0x07E0, 1); // Yellow to Green
+        tft_draw_text_gradient(hum_x, 112, hum_text, 0xFFE0, 0x07E0, 2); // Yellow to Green
         
         tft_update();
         
