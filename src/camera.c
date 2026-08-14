@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <curl/curl.h>
+#include <math.h>
 #include "camera.h"
 #include "config.h"
 
@@ -79,12 +80,23 @@ static void* camera_loop(void* arg) {
                                                 STBIR_RGB);
                         
                         pthread_mutex_lock(&camera_mutex);
+                        
+                        // ST7735 often has a linear-ish physical response unless initialized with proper gamma curves.
+                        // Since weather graphics are primary colors, it's unnoticeable, but photographs look washed out.
+                        // We apply a Gamma 2.2 curve here to darken the shadows to look perceptually correct.
+                        uint8_t gamma_lut[256];
+                        for (int i = 0; i < 256; i++) {
+                            float v = (float)i / 255.0f;
+                            // Gamma 2.2
+                            gamma_lut[i] = (uint8_t)(powf(v, 2.2f) * 255.0f + 0.5f);
+                        }
+                        
                         for (int y = 0; y < 128; y++) {
                             for (int x = 0; x < 160; x++) {
                                 int idx = (y * 160 + x) * 3;
-                                uint8_t r = resized_data[idx];
-                                uint8_t g = resized_data[idx + 1];
-                                uint8_t b = resized_data[idx + 2];
+                                uint8_t r = gamma_lut[resized_data[idx]];
+                                uint8_t g = gamma_lut[resized_data[idx + 1]];
+                                uint8_t b = gamma_lut[resized_data[idx + 2]];
                                 
                                 // Convert to RGB565
                                 camera_frame[y * 160 + x] = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
