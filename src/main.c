@@ -241,11 +241,11 @@ int main(void) {
             
             char hum_text[32];
             snprintf(hum_text, sizeof(hum_text), "HUM %s", hum);
-            int hum_w = strlen(hum_text) * 8;
+            int hum_w = strlen(hum_text) * 12; // 2x scaled 5x7 font (6px width * 2 = 12)
             int hum_x = (160 - hum_w) / 2;
             if (hum_x < 0) hum_x = 0;
             
-            tft_draw_text_gradient(hum_x, 114, hum_text, 0xFFE0, 0x07E0); // Yellow to Green
+            tft_draw_text(hum_x, 114, hum_text, 0x07FF, 2); // Cyan, 2x scale
             
             tft_update();
         }
