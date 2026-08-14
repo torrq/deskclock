@@ -1,14 +1,41 @@
 # Deskclock Configuration File
 
+# ---------------------------------------------------------
+# STARTUP SETTINGS
+# ---------------------------------------------------------
+
 # START_SCREEN determines which view is shown when the clock boots up.
 # Options: 'animations' (Weather Animations) or 'camera' (Traffic Camera)
 START_SCREEN=animations
 
+# ---------------------------------------------------------
+# WEATHER & TIME SETTINGS
+# ---------------------------------------------------------
+
+# The URL to fetch weather data from (must return wttr.in j1 JSON format)
 WEATHER_URL=http://wttr.in/Vancouver?format=j1
-CAMERA_URL=https://imgproxy.windy.com/_/full/plain/current/1575920021/original.jpg
+
+# The UTC offset for the bottom clock on the LED matrix (e.g. 8 for UTC+8, -8 for UTC-8)
 BOTTOM_CLOCK_UTC_OFFSET=8
+
+# ---------------------------------------------------------
+# CAMERA SETTINGS
+# ---------------------------------------------------------
+
+# The URL of the JPEG image to display in the Camera Mode
+CAMERA_URL=https://imgproxy.windy.com/_/full/plain/current/1575920021/original.jpg
+
+# The Gamma correction curve applied to the camera image to fix washed-out colors on the TFT screen.
+# 1.0 = No correction (Linear). 2.2 = Standard sRGB correction (Recommended).
 CAMERA_GAMMA=2.2
+
+# How the image is scaled to fit the 160x128 screen.
+# 'stretch' = Distorts the aspect ratio to force the image to fill the screen
+# 'crop' = Maintains aspect ratio, zooming in to fill the screen and cropping edges (object-fit: cover)
 CAMERA_SCALE_MODE=stretch
+
+# Pre-processing crops: Number of pixels to slice off the original image BEFORE it gets scaled.
+# Useful for removing timestamps, watermarks, or news tickers from the edges of public webcams.
 CAMERA_CROP_TOP=0
 CAMERA_CROP_BOTTOM=0
 CAMERA_CROP_LEFT=0
