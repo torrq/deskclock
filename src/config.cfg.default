@@ -22,8 +22,22 @@ BOTTOM_CLOCK_UTC_OFFSET=8
 # CAMERA SETTINGS
 # ---------------------------------------------------------
 
-# The URL of the JPEG image to display in the Camera Mode
+# How should the clock fetch the camera image?
+# 'url' = Directly download the JPEG from CAMERA_URL using HTTP
+# 'command' = Execute the local shell script defined in CAMERA_COMMAND
+CAMERA_ENGINE=url
+
+# How often to refresh the camera image in seconds (default 300 = 5 minutes)
+CAMERA_REFRESH_INTERVAL=300
+
+# The URL of the JPEG image to display in 'url' mode
 CAMERA_URL=https://imgproxy.windy.com/_/full/plain/current/1575920021/original.jpg
+
+# The shell command to execute in 'command' mode (e.g. to run yt-dlp & ffmpeg)
+CAMERA_COMMAND=/home/dietpi/get_camera.sh
+
+# The file where the shell command saves the final JPEG image
+CAMERA_COMMAND_OUTPUT=/tmp/deskclock_camera.jpg
 
 # The Gamma correction curve applied to the camera image to fix washed-out colors on the TFT screen.
 # 1.0 = No correction (Linear). 2.2 = Standard sRGB correction (Recommended).

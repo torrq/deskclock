@@ -7,7 +7,13 @@
 
 int g_start_screen = DEFAULT_START_SCREEN;
 char g_weather_url[256] = DEFAULT_WEATHER_URL;
+
+int g_camera_engine = 0; // 0=url, 1=command
 char g_camera_url[256] = DEFAULT_CAMERA_URL;
+char g_camera_command[256] = DEFAULT_CAMERA_COMMAND;
+char g_camera_command_output[256] = DEFAULT_CAMERA_COMMAND_OUTPUT;
+int g_camera_refresh_interval = DEFAULT_CAMERA_REFRESH_INTERVAL;
+
 int g_bottom_clock_offset = DEFAULT_BOTTOM_CLOCK_OFFSET;
 float g_camera_gamma = DEFAULT_CAMERA_GAMMA;
 int g_camera_scale_mode = DEFAULT_CAMERA_SCALE_MODE;
@@ -35,6 +41,9 @@ static void trim_whitespace(char* str) {
 }
 
 void config_load(const char* filepath) {
+    // Set default engine from macro string
+    if (strcmp(DEFAULT_CAMERA_ENGINE, "command") == 0) g_camera_engine = 1;
+    
     FILE* file = fopen(filepath, "r");
     if (!file) {
         printf("Config file %s not found, using defaults.\n", filepath);
@@ -58,6 +67,17 @@ void config_load(const char* filepath) {
             } else if (strcmp(key, "WEATHER_URL") == 0) {
                 strncpy(g_weather_url, value, sizeof(g_weather_url) - 1);
                 g_weather_url[sizeof(g_weather_url) - 1] = '\0';
+            } else if (strcmp(key, "CAMERA_ENGINE") == 0) {
+                if (strcmp(value, "command") == 0) g_camera_engine = 1;
+                else g_camera_engine = 0;
+            } else if (strcmp(key, "CAMERA_COMMAND") == 0) {
+                strncpy(g_camera_command, value, sizeof(g_camera_command) - 1);
+                g_camera_command[sizeof(g_camera_command) - 1] = '\0';
+            } else if (strcmp(key, "CAMERA_COMMAND_OUTPUT") == 0) {
+                strncpy(g_camera_command_output, value, sizeof(g_camera_command_output) - 1);
+                g_camera_command_output[sizeof(g_camera_command_output) - 1] = '\0';
+            } else if (strcmp(key, "CAMERA_REFRESH_INTERVAL") == 0) {
+                g_camera_refresh_interval = atoi(value);
             } else if (strcmp(key, "CAMERA_URL") == 0) {
                 strncpy(g_camera_url, value, sizeof(g_camera_url) - 1);
                 g_camera_url[sizeof(g_camera_url) - 1] = '\0';
