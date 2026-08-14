@@ -54,7 +54,17 @@ static void* camera_loop(void* arg) {
         unsigned char *img_data = NULL;
         int width, height, channels;
 
-        if (g_camera_engine == 0) { // URL Mode
+        if (strstr(g_camera_url, "youtube.com") || strstr(g_camera_url, "youtu.be")) { // YouTube Mode
+            char cmd[512];
+            snprintf(cmd, sizeof(cmd), "ffmpeg -y -i $(yt-dlp -g -f best \"%s\") -vframes 1 -q:v 2 /tmp/deskclock_camera.jpg > /dev/null 2>&1", g_camera_url);
+            printf("Executing YouTube command for %s\n", g_camera_url);
+            int ret = system(cmd);
+            if (ret == 0) {
+                img_data = stbi_load("/tmp/deskclock_camera.jpg", &width, &height, &channels, 3);
+            } else {
+                printf("YouTube fetch failed with return code %d\n", ret);
+            }
+        } else { // Direct URL Mode
             chunk.memory = malloc(1);
             chunk.size = 0;
 
@@ -78,14 +88,6 @@ static void* camera_loop(void* arg) {
             }
             free(chunk.memory);
             curl_global_cleanup();
-        } else { // Command Mode
-            printf("Executing camera command: %s\n", g_camera_command);
-            int ret = system(g_camera_command);
-            if (ret == 0) {
-                img_data = stbi_load(g_camera_command_output, &width, &height, &channels, 3);
-            } else {
-                printf("Camera command failed with return code %d\n", ret);
-            }
         }
 
         if (img_data) {
