@@ -29,3 +29,6 @@ If you add new features that display text, ensure all text is uppercased and str
 
 ## 6. Display Toggling Rule
 **DO NOT** modify or remove the hardware button polling on `GPIO 3` (Pin 5) or the software `SIGUSR1` toggle logic in `main.c`. **DO NOT** revert the TFT LED backlight pin to a hardwired 3.3V power rail; it must remain mapped to `GPIO 27` (Pin 13) to allow the C program to cycle through the 4 display power states.
+
+## 7. Configuration Updates Rule
+When adding a new configurable feature to the deskclock, you MUST ALWAYS update `src/config.cfg.default` and `src/constants.h` to include the new configuration setting and its default value.
