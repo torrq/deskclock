@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <curl/curl.h>
 #include "camera.h"
+#include "config.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -56,7 +57,7 @@ static void* camera_loop(void* arg) {
         curl_handle = curl_easy_init();
         
         if (curl_handle) {
-            curl_easy_setopt(curl_handle, CURLOPT_URL, "https://trafficcams.vancouver.ca/cameraimages/BurrardCanadaWest.jpg");
+            curl_easy_setopt(curl_handle, CURLOPT_URL, g_camera_url);
             curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
             curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&chunk);
             curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "curl/7.68.0");

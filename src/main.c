@@ -13,6 +13,7 @@
 #include "weather.h"
 #include "anim.h"
 #include "camera.h"
+#include "config.h"
 
 static bool running = true;
 
@@ -52,6 +53,9 @@ int main(void) {
     signal(SIGTERM, handle_sigint);
     signal(SIGUSR1, handle_sigusr1);
 
+    // Load config before initializing subsystems
+    config_load("../config.cfg");
+
     printf("Starting C DeskClock...\n");
     
     tft_init();
@@ -87,12 +91,12 @@ int main(void) {
             char time_str[32];
             snprintf(time_str, sizeof(time_str), "%2d %02d  %c", hour, min, is_pm ? 'P' : 'A');
             
-            time_t manila_raw = rawtime + (8 * 3600); // UTC+8
-            struct tm manila_info_buf;
-            struct tm * manila_info = gmtime_r(&manila_raw, &manila_info_buf);
+            time_t bot_raw = rawtime + (g_bottom_clock_offset * 3600);
+            struct tm bot_info_buf;
+            struct tm * bot_info = gmtime_r(&bot_raw, &bot_info_buf);
             
-            int m_hour = manila_info->tm_hour;
-            int m_min = manila_info->tm_min;
+            int m_hour = bot_info->tm_hour;
+            int m_min = bot_info->tm_min;
             int m_is_pm = (m_hour >= 12);
             if (m_hour == 0) m_hour = 12;
             if (m_hour > 12) m_hour -= 12;
