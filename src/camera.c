@@ -56,7 +56,7 @@ static void* camera_loop(void* arg) {
 
         if (strstr(g_camera_url, "youtube.com") || strstr(g_camera_url, "youtu.be")) { // YouTube Mode
             char cmd[512];
-            snprintf(cmd, sizeof(cmd), "ffmpeg -y -i $(yt-dlp -g -f b --no-warnings \"%s\") -vframes 1 -q:v 2 /tmp/deskclock_camera.jpg > /dev/null 2>&1", g_camera_url);
+            snprintf(cmd, sizeof(cmd), "ffmpeg -y -i $(yt-dlp -g -f worst --no-warnings \"%s\") -vframes 1 -q:v 2 /tmp/deskclock_camera.jpg > /dev/null 2>&1", g_camera_url);
             printf("Executing YouTube command for %s\n", g_camera_url);
             int ret = system(cmd);
             if (ret == 0) {
