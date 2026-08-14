@@ -1,6 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+extern int g_start_screen; // 0=animations, 1=camera
 extern char g_weather_url[256];
 extern char g_camera_url[256];
 extern int g_bottom_clock_offset;

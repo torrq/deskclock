@@ -17,15 +17,35 @@
 
 static bool running = true;
 
-// Modes: 0=Both ON, 1=LED ON/TFT OFF, 2=LED OFF/TFT ON, 3=Both OFF, 4=Camera Mode
-static int display_mode = 0;
+static int mode_stack[5] = {0, 1, 2, 3, 4};
+static int display_mode_idx = 0;
+
+int get_current_mode() {
+    return mode_stack[display_mode_idx];
+}
+
+void init_mode_stack() {
+    if (g_start_screen == 1) { // camera
+        mode_stack[0] = 4;
+        mode_stack[1] = 0;
+        mode_stack[2] = 1;
+        mode_stack[3] = 2;
+        mode_stack[4] = 3;
+    } else { // animations
+        mode_stack[0] = 0;
+        mode_stack[1] = 1;
+        mode_stack[2] = 2;
+        mode_stack[3] = 3;
+        mode_stack[4] = 4;
+    }
+}
 
 void handle_sigint(int sig) {
     running = false;
 }
 
 void apply_display_mode() {
-    switch(display_mode) {
+    switch(get_current_mode()) {
         case 0: tft_sleep(0); max7219_sleep(0, 2); break;
         case 1: tft_sleep(1); max7219_sleep(0, 2); break;
         case 2: tft_sleep(0); max7219_sleep(1, 2); break;
@@ -35,7 +55,7 @@ void apply_display_mode() {
 }
 
 void handle_sigusr1(int sig) {
-    display_mode = (display_mode + 1) % 5;
+    display_mode_idx = (display_mode_idx + 1) % 5;
     apply_display_mode();
 }
 
@@ -60,6 +80,10 @@ int main(void) {
     
     tft_init();
     max7219_init();
+    
+    init_mode_stack();
+    apply_display_mode();
+    
     anim_init();
     weather_init();
     camera_init();
@@ -112,7 +136,7 @@ int main(void) {
                 digits_bot[i] = SEGMENT_MAP[(int)time_str_bot[i]];
             }
             
-            if (display_mode == 0 || display_mode == 1 || display_mode == 4) {
+            if (get_current_mode() == 0 || get_current_mode() == 1 || get_current_mode() == 4) {
                 for (int i = 0; i < 8; i++) {
                     uint8_t data[2] = {digits_top[i], digits_bot[i]};
                     max7219_write_cmd_chain(8 - i, data, 2);
@@ -120,7 +144,7 @@ int main(void) {
             }
         }
         
-        if (display_mode == 4) {
+        if (get_current_mode() == 4) {
             pthread_mutex_lock(&camera_mutex);
             memcpy(tft_buffer, camera_frame, sizeof(camera_frame));
             if (!camera_updated) {
@@ -186,7 +210,7 @@ int main(void) {
             tft_draw_text(hum_x, 114, hum_text, 0xFFFF, 2);
             
             tft_update();
-        } else if (display_mode == 0 || display_mode == 2) {
+        } else if (get_current_mode() == 0 || get_current_mode() == 2) {
             bool is_night = (timeinfo->tm_hour < 6 || timeinfo->tm_hour >= 18);
             
             pthread_mutex_lock(&g_weather_data.mutex);
