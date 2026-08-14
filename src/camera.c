@@ -75,20 +75,48 @@ static void* camera_loop(void* arg) {
                     // We must use _srgb because JPEGs are sRGB, and linear downsampling washes out the image
                     unsigned char *resized_data = malloc(160 * 128 * 3);
                     if (resized_data) {
-                        stbir_resize_uint8_srgb(img_data, width, height, 0,
+                        int c_top = g_camera_crop_top;
+                        int c_bottom = g_camera_crop_bottom;
+                        int c_left = g_camera_crop_left;
+                        int c_right = g_camera_crop_right;
+                        
+                        // Sanity check crops
+                        if (c_top + c_bottom >= height) { c_top = 0; c_bottom = 0; }
+                        if (c_left + c_right >= width) { c_left = 0; c_right = 0; }
+                        
+                        int src_w = width - c_left - c_right;
+                        int src_h = height - c_top - c_bottom;
+                        int src_x = c_left;
+                        int src_y = c_top;
+                        
+                        // Crop-to-fit (object-fit: cover)
+                        if (g_camera_scale_mode == 1) {
+                            float src_aspect = (float)src_w / (float)src_h;
+                            float dst_aspect = 160.0f / 128.0f;
+                            
+                            if (src_aspect > dst_aspect) {
+                                int new_w = (int)(src_h * dst_aspect);
+                                src_x += (src_w - new_w) / 2;
+                                src_w = new_w;
+                            } else {
+                                int new_h = (int)(src_w / dst_aspect);
+                                src_y += (src_h - new_h) / 2;
+                                src_h = new_h;
+                            }
+                        }
+                        
+                        unsigned char *src_ptr = img_data + (src_y * width + src_x) * 3;
+                        
+                        stbir_resize_uint8_srgb(src_ptr, src_w, src_h, width * 3,
                                                 resized_data, 160, 128, 0,
                                                 STBIR_RGB);
                         
                         pthread_mutex_lock(&camera_mutex);
                         
-                        // ST7735 often has a linear-ish physical response unless initialized with proper gamma curves.
-                        // Since weather graphics are primary colors, it's unnoticeable, but photographs look washed out.
-                        // We apply a Gamma 2.2 curve here to darken the shadows to look perceptually correct.
                         uint8_t gamma_lut[256];
                         for (int i = 0; i < 256; i++) {
                             float v = (float)i / 255.0f;
-                            // Gamma 2.2
-                            gamma_lut[i] = (uint8_t)(powf(v, 2.2f) * 255.0f + 0.5f);
+                            gamma_lut[i] = (uint8_t)(powf(v, g_camera_gamma) * 255.0f + 0.5f);
                         }
                         
                         for (int y = 0; y < 128; y++) {

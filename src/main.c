@@ -175,6 +175,16 @@ int main(void) {
             tft_draw_pixel(unit_x+2, ring_y+3, 0xFFFF);
             tft_draw_pixel(unit_x+3, ring_y+3, 0xFFFF);
             
+            // Humidity with black drop shadow
+            char hum_text[32];
+            snprintf(hum_text, sizeof(hum_text), "HUM %s", hum);
+            int hum_w = strlen(hum_text) * 12; // 2x scaled 5x7 font
+            int hum_x = (160 - hum_w) / 2;
+            if (hum_x < 0) hum_x = 0;
+            
+            tft_draw_text(hum_x + 1, 114 + 1, hum_text, 0x0000, 2);
+            tft_draw_text(hum_x, 114, hum_text, 0xFFFF, 2);
+            
             tft_update();
         } else if (display_mode == 0 || display_mode == 2) {
             bool is_night = (timeinfo->tm_hour < 6 || timeinfo->tm_hour >= 18);

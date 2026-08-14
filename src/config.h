@@ -4,6 +4,12 @@
 extern char g_weather_url[256];
 extern char g_camera_url[256];
 extern int g_bottom_clock_offset;
+extern float g_camera_gamma;
+extern int g_camera_scale_mode; // 0=stretch, 1=crop
+extern int g_camera_crop_top;
+extern int g_camera_crop_bottom;
+extern int g_camera_crop_left;
+extern int g_camera_crop_right;
 
 void config_load(const char* filepath);
 
