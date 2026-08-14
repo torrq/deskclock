@@ -12,10 +12,11 @@
 #include "max7219.h"
 #include "weather.h"
 #include "anim.h"
+#include "camera.h"
 
 static bool running = true;
 
-// Modes: 0=Both ON, 1=LED ON/TFT OFF, 2=LED OFF/TFT ON, 3=Both OFF
+// Modes: 0=Both ON, 1=LED ON/TFT OFF, 2=LED OFF/TFT ON, 3=Both OFF, 4=Camera Mode
 static int display_mode = 0;
 
 void handle_sigint(int sig) {
@@ -28,11 +29,12 @@ void apply_display_mode() {
         case 1: tft_sleep(1); max7219_sleep(0, 2); break;
         case 2: tft_sleep(0); max7219_sleep(1, 2); break;
         case 3: tft_sleep(1); max7219_sleep(1, 2); break;
+        case 4: tft_sleep(0); max7219_sleep(0, 2); break;
     }
 }
 
 void handle_sigusr1(int sig) {
-    display_mode = (display_mode + 1) % 4;
+    display_mode = (display_mode + 1) % 5;
     apply_display_mode();
 }
 
@@ -56,6 +58,7 @@ int main(void) {
     max7219_init();
     anim_init();
     weather_init();
+    camera_init();
     
     int last_sec = -1;
     int last_btn_state = 1;
@@ -113,81 +116,89 @@ int main(void) {
             }
         }
         
-        bool is_night = (timeinfo->tm_hour < 6 || timeinfo->tm_hour >= 18);
-        
-        pthread_mutex_lock(&g_weather_data.mutex);
-        char temp[16], desc[64], hum[16];
-        strcpy(temp, g_weather_data.temp);
-        strcpy(desc, g_weather_data.desc);
-        strcpy(hum, g_weather_data.hum);
-        pthread_mutex_unlock(&g_weather_data.mutex);
-        
-        for (int i = 0; desc[i]; i++) {
-            desc[i] = toupper((unsigned char)desc[i]);
-        }
-        
-        bool DEMO_MODE = false;
-        if (DEMO_MODE) {
-            const char* test_modes[] = {"CLEAR", "RAIN", "SNOW", "CLOUD"};
-            strcpy(desc, test_modes[(rawtime / 5) % 4]);
-        }
-        
-        anim_draw(desc, is_night);
-        
-        uint16_t temp_color_top, temp_color_bot, outline_color, unit_color;
-        if (strstr(desc, "RAIN") || strstr(desc, "DRIZZLE") || strstr(desc, "THUNDER")) {
-            temp_color_top = 0x07FF; temp_color_bot = 0x001F;
-            unit_color = 0x07FF; outline_color = 0xFFFF;
-        } else if (strstr(desc, "SNOW")) {
-            temp_color_top = 0xFFFF; temp_color_bot = 0x841F;
-            unit_color = 0xFFFF; outline_color = 0xFFFF;
-        } else if (strstr(desc, "CLOUD")) {
-            temp_color_top = 0xCE79; temp_color_bot = 0xFFFF;
-            unit_color = 0xCE79; outline_color = 0x0000;
-        } else {
-            if (is_night) {
-                temp_color_top = 0x07FF; temp_color_bot = 0xF81F;
-                unit_color = 0x07FF; outline_color = 0x0000;
-            } else {
-                temp_color_top = 0xFFE0; temp_color_bot = 0xFC00;
-                unit_color = 0xFFE0; outline_color = 0x0000;
+        if (display_mode == 4) {
+            pthread_mutex_lock(&camera_mutex);
+            memcpy(tft_buffer, camera_frame, sizeof(camera_frame));
+            if (!camera_updated) {
+                tft_draw_text(40, 60, "FETCHING CAM", 0xFFFF, 1);
             }
-        }
-        
-        int num_start_x = 40;
-        if (strlen(temp) == 4) num_start_x = 30;
-        else if (strlen(temp) == 3) num_start_x = 50;
-        
-        char temp_num[16];
-        strcpy(temp_num, temp);
-        if (strlen(temp_num) > 0 && temp_num[strlen(temp_num)-1] == 'C') {
-            temp_num[strlen(temp_num)-1] = '\0';
-        }
-        
-        tft_draw_highres_text(num_start_x, 40, temp_num, temp_color_top, temp_color_bot, outline_color);
-        int unit_x = num_start_x + (strlen(temp_num) * 34) + 2;
-        tft_draw_text(unit_x, 40 + (48 - 14), " C", unit_color, 2);
-        
-        // Degree symbol (hollow ring)
-        int ring_y = 40 + (48 - 14) + 2;
-        tft_draw_pixel(unit_x+2, ring_y, unit_color);
-        tft_draw_pixel(unit_x+3, ring_y, unit_color);
-        tft_draw_pixel(unit_x+1, ring_y+1, unit_color);
-        tft_draw_pixel(unit_x+4, ring_y+1, unit_color);
-        tft_draw_pixel(unit_x+1, ring_y+2, unit_color);
-        tft_draw_pixel(unit_x+4, ring_y+2, unit_color);
-        tft_draw_pixel(unit_x+2, ring_y+3, unit_color);
-        tft_draw_pixel(unit_x+3, ring_y+3, unit_color);
-        
-        char hum_text[32];
-        snprintf(hum_text, sizeof(hum_text), "HUM %s", hum);
-        int hum_w = strlen(hum_text) * 8;
-        int hum_x = (160 - hum_w) / 2;
-        if (hum_x < 0) hum_x = 0;
-        
-        tft_draw_text_gradient(hum_x, 114, hum_text, 0xFFE0, 0x07E0); // Yellow to Green
-        
-        if (display_mode == 0 || display_mode == 2) {
+            pthread_mutex_unlock(&camera_mutex);
+            tft_update();
+        } else if (display_mode == 0 || display_mode == 2) {
+            bool is_night = (timeinfo->tm_hour < 6 || timeinfo->tm_hour >= 18);
+            
+            pthread_mutex_lock(&g_weather_data.mutex);
+            char temp[16], desc[64], hum[16];
+            strcpy(temp, g_weather_data.temp);
+            strcpy(desc, g_weather_data.desc);
+            strcpy(hum, g_weather_data.hum);
+            pthread_mutex_unlock(&g_weather_data.mutex);
+            
+            for (int i = 0; desc[i]; i++) {
+                desc[i] = toupper((unsigned char)desc[i]);
+            }
+            
+            bool DEMO_MODE = false;
+            if (DEMO_MODE) {
+                const char* test_modes[] = {"CLEAR", "RAIN", "SNOW", "CLOUD"};
+                strcpy(desc, test_modes[(rawtime / 5) % 4]);
+            }
+            
+            anim_draw(desc, is_night);
+            
+            uint16_t temp_color_top, temp_color_bot, outline_color, unit_color;
+            if (strstr(desc, "RAIN") || strstr(desc, "DRIZZLE") || strstr(desc, "THUNDER")) {
+                temp_color_top = 0x07FF; temp_color_bot = 0x001F;
+                unit_color = 0x07FF; outline_color = 0xFFFF;
+            } else if (strstr(desc, "SNOW")) {
+                temp_color_top = 0xFFFF; temp_color_bot = 0x841F;
+                unit_color = 0xFFFF; outline_color = 0xFFFF;
+            } else if (strstr(desc, "CLOUD")) {
+                temp_color_top = 0xCE79; temp_color_bot = 0xFFFF;
+                unit_color = 0xCE79; outline_color = 0x0000;
+            } else {
+                if (is_night) {
+                    temp_color_top = 0x07FF; temp_color_bot = 0xF81F;
+                    unit_color = 0x07FF; outline_color = 0x0000;
+                } else {
+                    temp_color_top = 0xFFE0; temp_color_bot = 0xFC00;
+                    unit_color = 0xFFE0; outline_color = 0x0000;
+                }
+            }
+            
+            int num_start_x = 40;
+            if (strlen(temp) == 4) num_start_x = 30;
+            else if (strlen(temp) == 3) num_start_x = 50;
+            
+            char temp_num[16];
+            strcpy(temp_num, temp);
+            if (strlen(temp_num) > 0 && temp_num[strlen(temp_num)-1] == 'C') {
+                temp_num[strlen(temp_num)-1] = '\0';
+            }
+            
+            tft_draw_highres_text(num_start_x, 40, temp_num, temp_color_top, temp_color_bot, outline_color);
+            int unit_x = num_start_x + (strlen(temp_num) * 34) + 2;
+            tft_draw_text(unit_x, 40 + (48 - 14), " C", unit_color, 2);
+            
+            // Degree symbol (hollow ring)
+            int ring_y = 40 + (48 - 14) + 2;
+            tft_draw_pixel(unit_x+2, ring_y, unit_color);
+            tft_draw_pixel(unit_x+3, ring_y, unit_color);
+            tft_draw_pixel(unit_x+1, ring_y+1, unit_color);
+            tft_draw_pixel(unit_x+4, ring_y+1, unit_color);
+            tft_draw_pixel(unit_x+1, ring_y+2, unit_color);
+            tft_draw_pixel(unit_x+4, ring_y+2, unit_color);
+            tft_draw_pixel(unit_x+2, ring_y+3, unit_color);
+            tft_draw_pixel(unit_x+3, ring_y+3, unit_color);
+            
+            char hum_text[32];
+            snprintf(hum_text, sizeof(hum_text), "HUM %s", hum);
+            int hum_w = strlen(hum_text) * 8;
+            int hum_x = (160 - hum_w) / 2;
+            if (hum_x < 0) hum_x = 0;
+            
+            tft_draw_text_gradient(hum_x, 114, hum_text, 0xFFE0, 0x07E0); // Yellow to Green
+            
             tft_update();
         }
         
@@ -195,6 +206,7 @@ int main(void) {
     }
     
     printf("Shutting down...\n");
+    camera_shutdown();
     weather_shutdown();
     tft_shutdown();
     max7219_shutdown();
