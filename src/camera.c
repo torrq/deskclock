@@ -71,11 +71,12 @@ static void* camera_loop(void* arg) {
                 
                 if (img_data) {
                     // Stretch image to 160x128 using high-quality downsampling (stb_image_resize2)
+                    // We must use _srgb because JPEGs are sRGB, and linear downsampling washes out the image
                     unsigned char *resized_data = malloc(160 * 128 * 3);
                     if (resized_data) {
-                        stbir_resize_uint8_linear(img_data, width, height, 0,
-                                                  resized_data, 160, 128, 0,
-                                                  STBIR_RGB);
+                        stbir_resize_uint8_srgb(img_data, width, height, 0,
+                                                resized_data, 160, 128, 0,
+                                                STBIR_RGB);
                         
                         pthread_mutex_lock(&camera_mutex);
                         for (int y = 0; y < 128; y++) {
