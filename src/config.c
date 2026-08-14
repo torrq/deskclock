@@ -6,7 +6,7 @@
 
 int g_start_screen = 0; // 0=animations, 1=camera
 char g_weather_url[256] = "http://wttr.in/Vancouver?format=j1";
-char g_camera_url[256] = "https://trafficcams.vancouver.ca/cameraimages/BurrardCanadaWest.jpg";
+char g_camera_url[256] = "https://imgproxy.windy.com/_/full/plain/current/1575920021/original.jpg";
 int g_bottom_clock_offset = 8;
 float g_camera_gamma = 2.2f;
 int g_camera_scale_mode = 0; // 0=stretch, 1=crop

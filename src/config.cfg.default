@@ -5,7 +5,7 @@
 START_SCREEN=animations
 
 WEATHER_URL=http://wttr.in/Vancouver?format=j1
-CAMERA_URL=https://trafficcams.vancouver.ca/cameraimages/BurrardCanadaWest.jpg
+CAMERA_URL=https://imgproxy.windy.com/_/full/plain/current/1575920021/original.jpg
 BOTTOM_CLOCK_UTC_OFFSET=8
 CAMERA_GAMMA=2.2
 CAMERA_SCALE_MODE=stretch
