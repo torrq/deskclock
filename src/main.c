@@ -112,7 +112,7 @@ int main(void) {
                 digits_bot[i] = SEGMENT_MAP[(int)time_str_bot[i]];
             }
             
-            if (display_mode == 0 || display_mode == 1) {
+            if (display_mode == 0 || display_mode == 1 || display_mode == 4) {
                 for (int i = 0; i < 8; i++) {
                     uint8_t data[2] = {digits_top[i], digits_bot[i]};
                     max7219_write_cmd_chain(8 - i, data, 2);
