@@ -78,6 +78,6 @@ void config_load(const char* filepath) {
             }
         }
     }
-    fclose(fp);
+    fclose(file);
     printf("Loaded configuration from %s\n", filepath);
 }
