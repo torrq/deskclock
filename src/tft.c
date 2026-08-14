@@ -6,10 +6,11 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <time.h>
+#include <math.h>
 #include <linux/spi/spidev.h>
 #include "tft.h"
-#include "fonts.h"
-#include "font_8x12.h"
+#include "data.h"
 
 #define DC_PIN 24
 #define RST_PIN 25

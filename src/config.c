@@ -3,17 +3,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include "constants.h"
 
-int g_start_screen = 0; // 0=animations, 1=camera
-char g_weather_url[256] = "http://wttr.in/Vancouver?format=j1";
-char g_camera_url[256] = "https://imgproxy.windy.com/_/full/plain/current/1575920021/original.jpg";
-int g_bottom_clock_offset = 8;
-float g_camera_gamma = 2.2f;
-int g_camera_scale_mode = 0; // 0=stretch, 1=crop
-int g_camera_crop_top = 0;
-int g_camera_crop_bottom = 0;
-int g_camera_crop_left = 0;
-int g_camera_crop_right = 0;
+int g_start_screen = DEFAULT_START_SCREEN;
+char g_weather_url[256] = DEFAULT_WEATHER_URL;
+char g_camera_url[256] = DEFAULT_CAMERA_URL;
+int g_bottom_clock_offset = DEFAULT_BOTTOM_CLOCK_OFFSET;
+float g_camera_gamma = DEFAULT_CAMERA_GAMMA;
+int g_camera_scale_mode = DEFAULT_CAMERA_SCALE_MODE;
+int g_camera_crop_top = DEFAULT_CAMERA_CROP_TOP;
+int g_camera_crop_bottom = DEFAULT_CAMERA_CROP_BOTTOM;
+int g_camera_crop_left = DEFAULT_CAMERA_CROP_LEFT;
+int g_camera_crop_right = DEFAULT_CAMERA_CROP_RIGHT;
 
 static void trim_whitespace(char* str) {
     char* end;

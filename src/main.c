@@ -14,6 +14,7 @@
 #include "anim.h"
 #include "camera.h"
 #include "config.h"
+#include "data.h"
 
 static bool running = true;
 
@@ -58,15 +59,6 @@ void handle_sigusr1(int sig) {
     display_mode_idx = (display_mode_idx + 1) % 5;
     apply_display_mode();
 }
-
-static const uint8_t SEGMENT_MAP[128] = {
-    [' '] = 0x00, ['-'] = 0x01,
-    ['0'] = 0x7E, ['1'] = 0x30, ['2'] = 0x6D, ['3'] = 0x79,
-    ['4'] = 0x33, ['5'] = 0x5B, ['6'] = 0x5F, ['7'] = 0x70,
-    ['8'] = 0x7F, ['9'] = 0x7B,
-    ['A'] = 0x77, ['P'] = 0x67,
-    ['C'] = 0x4E, ['F'] = 0x47,
-};
 
 int main(void) {
     signal(SIGINT, handle_sigint);
