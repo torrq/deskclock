@@ -74,7 +74,7 @@ int main(void) {
     signal(SIGUSR1, handle_sigusr1);
 
     // Load config before initializing subsystems
-    config_load("../config.cfg");
+    config_load("config.cfg");
 
     printf("Starting C DeskClock...\n");
     
