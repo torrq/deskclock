@@ -67,21 +67,41 @@ static void* camera_loop(void* arg) {
                 
                 if (img_data) {
                     pthread_mutex_lock(&camera_mutex);
-                    // Stretch image to 160x128 using Nearest Neighbor
+                    // Stretch image to 160x128 using Bilinear Interpolation
                     for (int y = 0; y < 128; y++) {
                         for (int x = 0; x < 160; x++) {
-                            int src_x = (x * width) / 160;
-                            int src_y = (y * height) / 128;
+                            float src_x = ((float)x / 159.0f) * (width - 1);
+                            float src_y = ((float)y / 127.0f) * (height - 1);
                             
-                            // Bounds checking (just in case)
-                            if (src_x >= width) src_x = width - 1;
-                            if (src_y >= height) src_y = height - 1;
+                            int x1 = (int)src_x;
+                            int y1 = (int)src_y;
+                            int x2 = x1 + 1;
+                            int y2 = y1 + 1;
+                            if (x2 >= width) x2 = width - 1;
+                            if (y2 >= height) y2 = height - 1;
                             
-                            int src_idx = (src_y * width + src_x) * 3;
+                            float dx = src_x - x1;
+                            float dy = src_y - y1;
                             
-                            uint8_t r = img_data[src_idx];
-                            uint8_t g = img_data[src_idx + 1];
-                            uint8_t b = img_data[src_idx + 2];
+                            int idx11 = (y1 * width + x1) * 3;
+                            int idx21 = (y1 * width + x2) * 3;
+                            int idx12 = (y2 * width + x1) * 3;
+                            int idx22 = (y2 * width + x2) * 3;
+                            
+                            uint8_t r = (1.0f - dx) * (1.0f - dy) * img_data[idx11 + 0] +
+                                        dx * (1.0f - dy) * img_data[idx21 + 0] +
+                                        (1.0f - dx) * dy * img_data[idx12 + 0] +
+                                        dx * dy * img_data[idx22 + 0];
+                                        
+                            uint8_t g = (1.0f - dx) * (1.0f - dy) * img_data[idx11 + 1] +
+                                        dx * (1.0f - dy) * img_data[idx21 + 1] +
+                                        (1.0f - dx) * dy * img_data[idx12 + 1] +
+                                        dx * dy * img_data[idx22 + 1];
+                                        
+                            uint8_t b = (1.0f - dx) * (1.0f - dy) * img_data[idx11 + 2] +
+                                        dx * (1.0f - dy) * img_data[idx21 + 2] +
+                                        (1.0f - dx) * dy * img_data[idx12 + 2] +
+                                        dx * dy * img_data[idx22 + 2];
                             
                             // Convert to RGB565
                             uint16_t rgb565 = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);

@@ -123,6 +123,64 @@ int main(void) {
                 tft_draw_text(40, 60, "FETCHING CAM", 0xFFFF, 1);
             }
             pthread_mutex_unlock(&camera_mutex);
+            
+            // Draw weather overlay
+            pthread_mutex_lock(&g_weather_data.mutex);
+            char temp[16], hum[16];
+            strcpy(temp, g_weather_data.temp);
+            strcpy(hum, g_weather_data.hum);
+            pthread_mutex_unlock(&g_weather_data.mutex);
+            
+            char temp_num[16];
+            strcpy(temp_num, temp);
+            if (strlen(temp_num) > 0 && temp_num[strlen(temp_num)-1] == 'C') {
+                temp_num[strlen(temp_num)-1] = '\0';
+            }
+            
+            int num_start_x = 40;
+            if (strlen(temp) == 4) num_start_x = 30;
+            else if (strlen(temp) == 3) num_start_x = 50;
+            
+            // White text with black outline for visibility
+            tft_draw_highres_text(num_start_x, 40, temp_num, 0xFFFF, 0xFFFF, 0x0000);
+            
+            int unit_x = num_start_x + (strlen(temp_num) * 34) + 2;
+            int ring_y = 40 + (48 - 14) + 2;
+            
+            // Unit 'C' with black drop shadow
+            tft_draw_text(unit_x + 1, 40 + (48 - 14) + 1, " C", 0x0000, 2);
+            tft_draw_text(unit_x, 40 + (48 - 14), " C", 0xFFFF, 2);
+            
+            // Degree symbol shadow
+            tft_draw_pixel(unit_x+2+1, ring_y+1, 0x0000);
+            tft_draw_pixel(unit_x+3+1, ring_y+1, 0x0000);
+            tft_draw_pixel(unit_x+1+1, ring_y+1+1, 0x0000);
+            tft_draw_pixel(unit_x+4+1, ring_y+1+1, 0x0000);
+            tft_draw_pixel(unit_x+1+1, ring_y+2+1, 0x0000);
+            tft_draw_pixel(unit_x+4+1, ring_y+2+1, 0x0000);
+            tft_draw_pixel(unit_x+2+1, ring_y+3+1, 0x0000);
+            tft_draw_pixel(unit_x+3+1, ring_y+3+1, 0x0000);
+            
+            // Degree symbol
+            tft_draw_pixel(unit_x+2, ring_y, 0xFFFF);
+            tft_draw_pixel(unit_x+3, ring_y, 0xFFFF);
+            tft_draw_pixel(unit_x+1, ring_y+1, 0xFFFF);
+            tft_draw_pixel(unit_x+4, ring_y+1, 0xFFFF);
+            tft_draw_pixel(unit_x+1, ring_y+2, 0xFFFF);
+            tft_draw_pixel(unit_x+4, ring_y+2, 0xFFFF);
+            tft_draw_pixel(unit_x+2, ring_y+3, 0xFFFF);
+            tft_draw_pixel(unit_x+3, ring_y+3, 0xFFFF);
+            
+            // Humidity with black drop shadow
+            char hum_text[32];
+            snprintf(hum_text, sizeof(hum_text), "HUM %s", hum);
+            int hum_w = strlen(hum_text) * 8;
+            int hum_x = (160 - hum_w) / 2;
+            if (hum_x < 0) hum_x = 0;
+            
+            tft_draw_text(hum_x + 1, 114 + 1, hum_text, 0x0000, 1);
+            tft_draw_text_gradient(hum_x, 114, hum_text, 0xFFFF, 0xFFFF);
+            
             tft_update();
         } else if (display_mode == 0 || display_mode == 2) {
             bool is_night = (timeinfo->tm_hour < 6 || timeinfo->tm_hour >= 18);
