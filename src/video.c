@@ -24,7 +24,7 @@ static void* video_loop(void* arg) {
         if (strstr(g_camera_url, "youtube.com") || strstr(g_camera_url, "youtu.be")) {
             printf("[Video Engine] Resolving YouTube stream URL with yt-dlp...\n");
             char ytdlp_cmd[512];
-            snprintf(ytdlp_cmd, sizeof(ytdlp_cmd), "yt-dlp -g -f worst --no-warnings \"%s\"", g_camera_url);
+            snprintf(ytdlp_cmd, sizeof(ytdlp_cmd), "yt-dlp --extractor-args \"youtube:player_client=android,web\" -g -f worst --no-warnings \"%s\"", g_camera_url);
             
             FILE* pipe = popen(ytdlp_cmd, "r");
             if (pipe) {
