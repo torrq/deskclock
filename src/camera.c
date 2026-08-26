@@ -67,11 +67,10 @@ static void* camera_loop(void* arg) {
             char cmd[1024];
             snprintf(cmd, sizeof(cmd), "yt-dlp --extractor-args \"youtube:player_client=android,web\" -f worst --no-warnings -o - \"%s\" 2>/dev/null | ffmpeg -nostdin -y -i pipe:0 -vframes 1 -q:v 2 /tmp/deskclock_camera.jpg > /dev/null 2>&1", g_camera_url);
             printf("Executing YouTube snapshot command for %s\n", g_camera_url);
-            int ret = system(cmd);
-            if (ret == 0) {
-                img_data = stbi_load("/tmp/deskclock_camera.jpg", &width, &height, &channels, 3);
-            } else {
-                printf("YouTube fetch failed with return code %d\n", ret);
+            system(cmd);
+            img_data = stbi_load("/tmp/deskclock_camera.jpg", &width, &height, &channels, 3);
+            if (!img_data) {
+                printf("YouTube snapshot failed to decode image.\n");
             }
         } else { // Direct URL Mode
             chunk.memory = malloc(1);

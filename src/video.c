@@ -65,7 +65,7 @@ static void* video_loop(void* arg) {
             "ffmpeg -nostdin -nostats -loglevel error "
             "-fflags +nobuffer+genpts+discardcorrupt -flags low_delay "
             "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 "
-            "-i \"%s\" -vf \"fps=%d,scale=160:128\" -f rawvideo -pix_fmt rgb565le -",
+            "-i \"%s\" -vf \"fps=%d,scale=160:128\" -f rawvideo -pix_fmt rgb565le - 2>/dev/null",
             stream_url, g_video_fps);
         
         FILE* ffmpeg_pipe = popen(ffmpeg_cmd, "r");
