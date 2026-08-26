@@ -60,6 +60,7 @@ void config_load(const char* filepath) {
             
             if (strcmp(key, "START_SCREEN") == 0) {
                 if (strcmp(value, "camera") == 0) g_start_screen = 1;
+                else if (strcmp(value, "stream") == 0 || strcmp(value, "video") == 0) g_start_screen = 2;
                 else g_start_screen = 0;
             } else if (strcmp(key, "WEATHER_URL") == 0) {
                 strncpy(g_weather_url, value, sizeof(g_weather_url) - 1);

@@ -36,7 +36,13 @@ int get_current_mode() {
 }
 
 void init_mode_stack() {
-    if (g_start_screen == 1) { // camera
+    if (g_start_screen == 2) { // stream / live video
+        mode_stack[0] = MODE_LIVE_VIDEO;
+        mode_stack[1] = MODE_OFF;
+        mode_stack[2] = MODE_ANIM;
+        mode_stack[3] = MODE_CAM_TEXT;
+        mode_stack[4] = MODE_CAM_CLEAN;
+    } else if (g_start_screen == 1) { // camera snapshot
         mode_stack[0] = MODE_CAM_TEXT;
         mode_stack[1] = MODE_CAM_CLEAN;
         mode_stack[2] = MODE_LIVE_VIDEO;

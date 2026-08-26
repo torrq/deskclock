@@ -1,7 +1,7 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-#define DEFAULT_START_SCREEN 0 // 0=animations, 1=camera
+#define DEFAULT_START_SCREEN 0 // 0=animations, 1=camera, 2=stream
 #define DEFAULT_WEATHER_URL "http://wttr.in/Vancouver?format=j1"
 
 #define DEFAULT_CAMERA_URL "https://imgproxy.windy.com/_/full/plain/current/1575920021/original.jpg"

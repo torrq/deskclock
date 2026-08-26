@@ -5,7 +5,10 @@
 # ---------------------------------------------------------
 
 # START_SCREEN determines which view is shown when the clock boots up.
-# Options: 'animations' (Weather Animations) or 'camera' (Traffic Camera)
+# Options: 
+#   'animations' = Weather Animations
+#   'camera'     = 5-Minute Traffic Camera Snapshot
+#   'stream'     = Continuous Live YouTube Video Stream
 START_SCREEN=animations
 
 # ---------------------------------------------------------
