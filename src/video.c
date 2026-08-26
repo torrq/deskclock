@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <math.h>
 #include "video.h"
 #include "config.h"
 
@@ -18,6 +19,7 @@ extern int get_current_mode(void);
 static void* video_loop(void* arg) {
     char stream_url[2048] = {0};
     uint16_t frame_buf[VIDEO_FRAME_SIZE];
+    uint8_t rgb_raw[VIDEO_FRAME_SIZE * 3];
     
     while (running) {
         // Only run video decoding pipeline when in MODE_LIVE_VIDEO (3)
@@ -58,14 +60,14 @@ static void* video_loop(void* arg) {
             continue;
         }
         
-        printf("[Video Engine] Starting live stream pipe at %d FPS...\n", g_video_fps);
+        printf("[Video Engine] Starting live stream pipe at %d FPS (Gamma: %.2f)...\n", g_video_fps, g_camera_gamma);
         
         char ffmpeg_cmd[3072];
         snprintf(ffmpeg_cmd, sizeof(ffmpeg_cmd),
             "ffmpeg -nostdin -nostats -loglevel error "
             "-fflags +nobuffer+genpts+discardcorrupt -flags low_delay "
             "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 "
-            "-i \"%s\" -vf \"fps=%d,scale=160:128\" -f rawvideo -pix_fmt rgb565le - 2>/dev/null",
+            "-i \"%s\" -vf \"fps=%d,scale=160:128:flags=bicubic\" -f rawvideo -pix_fmt rgb24 - 2>/dev/null",
             stream_url, g_video_fps);
         
         FILE* ffmpeg_pipe = popen(ffmpeg_cmd, "r");
@@ -75,14 +77,19 @@ static void* video_loop(void* arg) {
             continue;
         }
         
-        // Read raw video frames continuously while in video mode
-        const size_t target_bytes = VIDEO_FRAME_SIZE * sizeof(uint16_t);
+        // Precompute gamma LUT identically to camera.c
+        uint8_t gamma_lut[256];
+        for (int i = 0; i < 256; i++) {
+            float v = (float)i / 255.0f;
+            gamma_lut[i] = (uint8_t)(powf(v, g_camera_gamma) * 255.0f + 0.5f);
+        }
+        
+        const size_t target_bytes = sizeof(rgb_raw);
         while (running && get_current_mode() == 3) {
             size_t bytes_read = 0;
-            uint8_t* ptr = (uint8_t*)frame_buf;
             
             while (bytes_read < target_bytes && running && get_current_mode() == 3) {
-                size_t r = fread(ptr + bytes_read, 1, target_bytes - bytes_read, ffmpeg_pipe);
+                size_t r = fread(rgb_raw + bytes_read, 1, target_bytes - bytes_read, ffmpeg_pipe);
                 if (r <= 0) break;
                 bytes_read += r;
             }
@@ -90,6 +97,14 @@ static void* video_loop(void* arg) {
             if (bytes_read < target_bytes) {
                 printf("[Video Engine] Stream disconnected / EOF reached.\n");
                 break;
+            }
+            
+            // Convert to RGB565 with identical gamma curve as camera.c
+            for (int i = 0; i < VIDEO_FRAME_SIZE; i++) {
+                uint8_t r = gamma_lut[rgb_raw[i * 3]];
+                uint8_t g = gamma_lut[rgb_raw[i * 3 + 1]];
+                uint8_t b = gamma_lut[rgb_raw[i * 3 + 2]];
+                frame_buf[i] = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
             }
             
             // Frame successfully decoded: copy to global buffer
