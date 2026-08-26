@@ -56,6 +56,7 @@ static void* video_loop(void* arg) {
         char ffmpeg_cmd[3072];
         snprintf(ffmpeg_cmd, sizeof(ffmpeg_cmd),
             "ffmpeg -nostats -loglevel error "
+            "-fflags +nobuffer+genpts+discardcorrupt -flags low_delay "
             "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 "
             "-i \"%s\" -vf \"fps=%d,scale=160:128,eq=gamma=%.3f:contrast=1.15:saturation=1.3\" -f rawvideo -pix_fmt rgb565le -",
             stream_url, g_video_fps, ffmpeg_gamma);
