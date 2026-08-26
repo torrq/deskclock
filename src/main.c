@@ -57,6 +57,7 @@ void apply_display_mode() {
 
 void handle_sigusr1(int sig) {
     display_mode_idx = (display_mode_idx + 1) % 5;
+    printf("Display mode switched to: %d\n", display_mode_idx);
     apply_display_mode();
 }
 
@@ -81,14 +82,14 @@ int main(void) {
     camera_init();
     
     int last_sec = -1;
-    int last_btn_state = 1;
+    int btn_history = 0xFF;
     
     while (running) {
         int btn = get_button_state();
-        if (btn == 0 && last_btn_state == 1) { // Falling edge (pressed)
+        btn_history = ((btn_history << 1) | (btn & 1)) & 0x07;
+        if (btn_history == 0x04) { // Clean falling edge (1 -> 0 -> 0)
             handle_sigusr1(SIGUSR1);
         }
-        last_btn_state = btn;
         
         time_t rawtime;
         time(&rawtime);

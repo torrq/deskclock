@@ -81,6 +81,29 @@ static void spi_write(uint8_t* data, size_t len) {
     ioctl(spi_fd, SPI_IOC_MESSAGE(1), &tr);
 }
 
+static void spi_write_bulk(uint8_t* data, size_t total_len) {
+    // Break into 4096 byte chunks within a single atomic SPI ioctl message
+    // so CS is held LOW for the entire frame transfer
+    int num_chunks = (total_len + 4095) / 4096;
+    struct spi_ioc_transfer tr[16];
+    if (num_chunks > 16) num_chunks = 16;
+    
+    for (int i = 0; i < num_chunks; i++) {
+        memset(&tr[i], 0, sizeof(struct spi_ioc_transfer));
+        size_t offset = i * 4096;
+        size_t len = total_len - offset;
+        if (len > 4096) len = 4096;
+        
+        tr[i].tx_buf = (unsigned long)(data + offset);
+        tr[i].len = len;
+        tr[i].speed_hz = 15000000;
+        tr[i].bits_per_word = 8;
+        tr[i].cs_change = 0; // Hold CS LOW continuously across chunks
+    }
+    
+    ioctl(spi_fd, SPI_IOC_MESSAGE(num_chunks), tr);
+}
+
 static void tft_command(uint8_t cmd) {
     dc_low();
     spi_write(&cmd, 1);
@@ -212,13 +235,16 @@ void tft_fill(uint16_t color) {
 }
 
 void tft_update(void) {
+    uint8_t caset[4] = {0x00, 0x00, 0x00, 0x9F};
+    uint8_t raset[4] = {0x00, 0x00, 0x00, 0x7F};
+    
     tft_command(0x2A); // CASET
-    tft_data(0x00); tft_data(0x00);
-    tft_data(0x00); tft_data(0x9F); // 159
+    dc_high();
+    spi_write(caset, 4);
     
     tft_command(0x2B); // RASET
-    tft_data(0x00); tft_data(0x00);
-    tft_data(0x00); tft_data(0x7F); // 127
+    dc_high();
+    spi_write(raset, 4);
     
     tft_command(0x2C); // RAMWR
     
@@ -230,14 +256,7 @@ void tft_update(void) {
     }
     
     dc_high();
-    
-    // SPI transfers usually have a limit (4096 bytes is typical)
-    int chunk_size = 4096;
-    for (int i = 0; i < sizeof(buf); i += chunk_size) {
-        int len = sizeof(buf) - i;
-        if (len > chunk_size) len = chunk_size;
-        spi_write(&buf[i], len);
-    }
+    spi_write_bulk(buf, sizeof(buf));
 }
 
 void tft_draw_pixel(int x, int y, uint16_t color) {
