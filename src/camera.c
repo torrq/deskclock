@@ -44,13 +44,22 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
     return realsize;
 }
 
+extern int get_current_mode(void);
+
 static void* camera_loop(void* arg) {
     CURL *curl_handle;
     CURLcode res;
     struct MemoryStruct chunk;
 
     while (running) {
-        printf("Fetching live camera data...\n");
+        // Only fetch camera snapshots if a snapshot mode (Mode 1 or 2) is active
+        int mode = get_current_mode();
+        if (mode != 1 && mode != 2) {
+            sleep(1);
+            continue;
+        }
+
+        printf("Fetching live camera snapshot...\n");
         unsigned char *img_data = NULL;
         int width, height, channels;
 

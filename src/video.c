@@ -49,11 +49,13 @@ static void* video_loop(void* arg) {
             continue;
         }
         
-        printf("[Video Engine] Starting ffmpeg pipe at %d FPS...\n", g_video_fps);
+        printf("[Video Engine] Starting ffmpeg live stream pipe at %d FPS...\n", g_video_fps);
         
         char ffmpeg_cmd[3072];
         snprintf(ffmpeg_cmd, sizeof(ffmpeg_cmd),
-            "ffmpeg -re -nostats -loglevel quiet -i \"%s\" -vf \"fps=%d,scale=160:128\" -f rawvideo -pix_fmt rgb565le -",
+            "ffmpeg -nostats -loglevel warning "
+            "-reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 5 "
+            "-i \"%s\" -vf \"fps=%d,scale=160:128\" -f rawvideo -pix_fmt rgb565le -",
             stream_url, g_video_fps);
         
         FILE* ffmpeg_pipe = popen(ffmpeg_cmd, "r");
