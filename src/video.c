@@ -49,14 +49,16 @@ static void* video_loop(void* arg) {
             continue;
         }
         
-        printf("[Video Engine] Starting ffmpeg live stream pipe at %d FPS...\n", g_video_fps);
+        printf("[Video Engine] Starting ffmpeg live stream pipe at %d FPS (Gamma: %.2f)...\n", g_video_fps, g_camera_gamma);
+        
+        float ffmpeg_gamma = (g_camera_gamma > 0.1f) ? (1.0f / g_camera_gamma) : 0.45f;
         
         char ffmpeg_cmd[3072];
         snprintf(ffmpeg_cmd, sizeof(ffmpeg_cmd),
             "ffmpeg -nostats -loglevel warning "
             "-reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 5 "
-            "-i \"%s\" -vf \"fps=%d,scale=160:128\" -f rawvideo -pix_fmt rgb565le -",
-            stream_url, g_video_fps);
+            "-i \"%s\" -vf \"fps=%d,scale=160:128,eq=gamma=%.3f:contrast=1.15:saturation=1.3\" -f rawvideo -pix_fmt rgb565le -",
+            stream_url, g_video_fps, ffmpeg_gamma);
         
         FILE* ffmpeg_pipe = popen(ffmpeg_cmd, "r");
         if (!ffmpeg_pipe) {
