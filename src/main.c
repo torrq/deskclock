@@ -148,7 +148,7 @@ int main(void) {
                      timeinfo->tm_mon + 1,
                      timeinfo->tm_mday);
             
-            // Panel 3 (4th Display): Weather Temp & Humidity (e.g. " 22C 65H")
+            // Panel 3 (4th Display): Weather Temp & Humidity (Temp far left, Humidity far right, e.g. "22C  65H")
             char weather_str[32] = "        ";
             pthread_mutex_lock(&g_weather_data.mutex);
             if (g_weather_data.updated) {
@@ -157,9 +157,13 @@ int main(void) {
                 strncpy(temp_buf, g_weather_data.temp, sizeof(temp_buf) - 1);
                 strncpy(hum_buf, g_weather_data.hum, sizeof(hum_buf) - 1);
                 int hum_val = atoi(hum_buf);
-                snprintf(weather_str, sizeof(weather_str), "%4s %2dH", temp_buf, hum_val);
+                char hum_part[16];
+                snprintf(hum_part, sizeof(hum_part), "%dH", hum_val);
+                int spaces = 8 - (int)strlen(temp_buf) - (int)strlen(hum_part);
+                if (spaces < 0) spaces = 0;
+                snprintf(weather_str, sizeof(weather_str), "%s%*s%s", temp_buf, spaces, "", hum_part);
             } else {
-                snprintf(weather_str, sizeof(weather_str), "---  --H");
+                snprintf(weather_str, sizeof(weather_str), "---   --");
             }
             pthread_mutex_unlock(&g_weather_data.mutex);
             
