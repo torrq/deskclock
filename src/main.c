@@ -143,10 +143,9 @@ int main(void) {
     video_init();
     
     int last_btn_state = 1;
-    uint32_t last_press_tick = 0;
+    uint32_t btn_press_start_ms = 0;
+    bool long_press_triggered = false;
     
-    int click_count = 0;
-    uint32_t last_click_ms = 0;
     bool ip_scroll_active = false;
     uint32_t ip_scroll_start_ms = 0;
     char ip_scroll_text[128] = {0};
@@ -157,30 +156,27 @@ int main(void) {
         clock_gettime(CLOCK_MONOTONIC, &now);
         uint32_t now_ms = (uint32_t)(now.tv_sec * 1000 + now.tv_nsec / 1000000);
         
-        if (btn == 0 && last_btn_state == 1) { // Falling edge (pressed)
-            if (now_ms - last_press_tick > 120) { // 120ms debounce for rapid clicking
-                last_press_tick = now_ms;
-                
-                if (click_count == 0 || (now_ms - last_click_ms > 600)) {
-                    click_count = 1;
-                } else {
-                    click_count++;
-                }
-                last_click_ms = now_ms;
-                
-                if (click_count >= 4) {
-                    // 4 fast clicks detected!
-                    char current_ip[64] = {0};
-                    get_local_ip(current_ip, sizeof(current_ip));
-                    snprintf(ip_scroll_text, sizeof(ip_scroll_text), "        IP %s        ", current_ip);
-                    ip_scroll_active = true;
-                    ip_scroll_start_ms = now_ms;
-                    click_count = 0;
-                    printf("[Button] 4 fast clicks! Scrolling IP '%s' for 120s on bottom LED panel.\n", current_ip);
-                } else {
-                    handle_sigusr1(SIGUSR1);
-                }
+        if (btn == 0) { // Button is currently PRESSED
+            if (last_btn_state == 1) { // Pressed down edge
+                btn_press_start_ms = now_ms;
+                long_press_triggered = false;
+            } else if (!long_press_triggered && (now_ms - btn_press_start_ms >= 2000)) {
+                // Held down for 2 full seconds -> Trigger IP Scroll!
+                long_press_triggered = true;
+                char current_ip[64] = {0};
+                get_local_ip(current_ip, sizeof(current_ip));
+                snprintf(ip_scroll_text, sizeof(ip_scroll_text), "        IP %s        ", current_ip);
+                ip_scroll_active = true;
+                ip_scroll_start_ms = now_ms;
+                printf("[Button] 2s Hold detected! Scrolling IP '%s' for 120s on bottom LED panel.\n", current_ip);
             }
+        } else if (btn == 1 && last_btn_state == 0) { // Released edge
+            if (!long_press_triggered && (now_ms - btn_press_start_ms >= 50)) {
+                // Short click (< 2 seconds) -> Cycle TFT display mode
+                handle_sigusr1(SIGUSR1);
+            }
+            btn_press_start_ms = 0;
+            long_press_triggered = false;
         }
         last_btn_state = btn;
         
