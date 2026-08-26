@@ -5,6 +5,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include "max7219.h"
+#include "config.h"
 
 #define BCM2708_PERI_BASE 0x3F000000 
 #define GPIO_BASE 0x200000 
@@ -88,12 +89,12 @@ void max7219_init(void) {
     set_pin(DIN_PIN, 0);
     
     // Initialize matrices
-    max7219_send_command_all(0x09, 0x00, 2); // No decode
-    max7219_send_command_all(0x0A, 0x01, 2); // Low intensity
-    max7219_send_command_all(0x0B, 0x07, 2); // Scan limit 8
-    max7219_send_command_all(0x0C, 0x01, 2); // Normal operation
-    max7219_send_command_all(0x0F, 0x00, 2); // Disable display test
-    max7219_clear(2);
+    max7219_send_command_all(0x09, 0x00, g_max7219_displays); // No decode
+    max7219_send_command_all(0x0A, 0x01, g_max7219_displays); // Low intensity
+    max7219_send_command_all(0x0B, 0x07, g_max7219_displays); // Scan limit 8
+    max7219_send_command_all(0x0C, 0x01, g_max7219_displays); // Normal operation
+    max7219_send_command_all(0x0F, 0x00, g_max7219_displays); // Disable display test
+    max7219_clear(g_max7219_displays);
 }
 
 void max7219_write_cmd_chain(uint8_t reg, uint8_t data_list[], int num_displays) {
@@ -121,7 +122,7 @@ void max7219_clear(int num_displays) {
 }
 
 void max7219_shutdown(void) {
-    max7219_clear(2);
+    max7219_clear(g_max7219_displays);
     if (gpio_map != MAP_FAILED) {
         munmap((void*)gpio_map, BLOCK_SIZE);
     }

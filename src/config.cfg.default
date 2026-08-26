@@ -19,6 +19,13 @@ WEATHER_URL=http://wttr.in/Vancouver?format=j1
 BOTTOM_CLOCK_UTC_OFFSET=8
 
 # ---------------------------------------------------------
+# DISPLAY SETTINGS
+# ---------------------------------------------------------
+
+# Number of daisy-chained MAX7219 8-digit modules (default: 4)
+MAX7219_DISPLAYS=4
+
+# ---------------------------------------------------------
 # CAMERA SETTINGS
 # ---------------------------------------------------------
 

@@ -11,6 +11,7 @@ char g_weather_url[256] = DEFAULT_WEATHER_URL;
 char g_camera_url[256] = DEFAULT_CAMERA_URL;
 int g_camera_refresh_interval = DEFAULT_CAMERA_REFRESH_INTERVAL;
 
+int g_max7219_displays = DEFAULT_MAX7219_DISPLAYS;
 int g_bottom_clock_offset = DEFAULT_BOTTOM_CLOCK_OFFSET;
 float g_camera_gamma = DEFAULT_CAMERA_GAMMA;
 int g_camera_scale_mode = DEFAULT_CAMERA_SCALE_MODE;
@@ -67,6 +68,8 @@ void config_load(const char* filepath) {
             } else if (strcmp(key, "CAMERA_URL") == 0) {
                 strncpy(g_camera_url, value, sizeof(g_camera_url) - 1);
                 g_camera_url[sizeof(g_camera_url) - 1] = '\0';
+            } else if (strcmp(key, "MAX7219_DISPLAYS") == 0) {
+                g_max7219_displays = atoi(value);
             } else if (strcmp(key, "BOTTOM_CLOCK_UTC_OFFSET") == 0) {
                 g_bottom_clock_offset = atoi(value);
             } else if (strcmp(key, "CAMERA_GAMMA") == 0) {

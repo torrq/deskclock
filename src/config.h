@@ -7,6 +7,7 @@ extern char g_weather_url[256];
 extern char g_camera_url[256];
 extern int g_camera_refresh_interval;
 
+extern int g_max7219_displays;
 extern int g_bottom_clock_offset;
 extern float g_camera_gamma;
 extern int g_camera_scale_mode; // 0=stretch, 1=crop

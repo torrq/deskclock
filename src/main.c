@@ -47,11 +47,11 @@ void handle_sigint(int sig) {
 
 void apply_display_mode() {
     switch(get_current_mode()) {
-        case 0: tft_sleep(0); max7219_sleep(0, 2); break;
-        case 1: tft_sleep(1); max7219_sleep(0, 2); break;
-        case 2: tft_sleep(0); max7219_sleep(1, 2); break;
-        case 3: tft_sleep(1); max7219_sleep(1, 2); break;
-        case 4: tft_sleep(0); max7219_sleep(0, 2); break;
+        case 0: tft_sleep(0); max7219_sleep(0, g_max7219_displays); break;
+        case 1: tft_sleep(1); max7219_sleep(0, g_max7219_displays); break;
+        case 2: tft_sleep(0); max7219_sleep(1, g_max7219_displays); break;
+        case 3: tft_sleep(1); max7219_sleep(1, g_max7219_displays); break;
+        case 4: tft_sleep(0); max7219_sleep(0, g_max7219_displays); break;
     }
 }
 
@@ -120,18 +120,45 @@ int main(void) {
             char time_str_bot[32];
             snprintf(time_str_bot, sizeof(time_str_bot), "%2d %02d  %c", m_hour, m_min, m_is_pm ? 'P' : 'A');
             
-            uint8_t digits_top[8] = {0};
-            uint8_t digits_bot[8] = {0};
+            // Panel 2 (3rd Display): Date (e.g. "AUG 26  ")
+            char date_str[32] = "        ";
+            char month_buf[16] = {0};
+            strftime(month_buf, sizeof(month_buf), "%b", timeinfo);
+            for (int k = 0; month_buf[k]; k++) {
+                month_buf[k] = toupper((unsigned char)month_buf[k]);
+            }
+            snprintf(date_str, sizeof(date_str), "%3s %2d  ", month_buf, timeinfo->tm_mday);
             
+            // Panel 3 (4th Display): Weather Temp & Humidity (e.g. " 22C 65H")
+            char weather_str[32] = "        ";
+            pthread_mutex_lock(&g_weather_data.mutex);
+            if (g_weather_data.updated) {
+                char temp_buf[16] = {0};
+                char hum_buf[16] = {0};
+                strncpy(temp_buf, g_weather_data.temp, sizeof(temp_buf) - 1);
+                strncpy(hum_buf, g_weather_data.hum, sizeof(hum_buf) - 1);
+                int hum_val = atoi(hum_buf);
+                snprintf(weather_str, sizeof(weather_str), "%4s %2dH", temp_buf, hum_val);
+            } else {
+                snprintf(weather_str, sizeof(weather_str), "---  --H");
+            }
+            pthread_mutex_unlock(&g_weather_data.mutex);
+            
+            uint8_t digits[4][8] = {{0}};
             for (int i = 0; i < 8; i++) {
-                digits_top[i] = SEGMENT_MAP[(int)time_str[i]];
-                digits_bot[i] = SEGMENT_MAP[(int)time_str_bot[i]];
+                digits[0][i] = SEGMENT_MAP[(uint8_t)time_str[i]];
+                digits[1][i] = SEGMENT_MAP[(uint8_t)time_str_bot[i]];
+                digits[2][i] = SEGMENT_MAP[(uint8_t)date_str[i]];
+                digits[3][i] = SEGMENT_MAP[(uint8_t)weather_str[i]];
             }
             
             if (get_current_mode() == 0 || get_current_mode() == 1 || get_current_mode() == 4) {
                 for (int i = 0; i < 8; i++) {
-                    uint8_t data[2] = {digits_top[i], digits_bot[i]};
-                    max7219_write_cmd_chain(8 - i, data, 2);
+                    uint8_t data[4] = {0};
+                    for (int d = 0; d < g_max7219_displays && d < 4; d++) {
+                        data[d] = digits[d][i];
+                    }
+                    max7219_write_cmd_chain(8 - i, data, g_max7219_displays);
                 }
             }
         }
