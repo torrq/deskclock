@@ -141,14 +141,12 @@ int main(void) {
             char time_str_bot[32];
             snprintf(time_str_bot, sizeof(time_str_bot), "%2d %02d  %c", m_hour, m_min, m_is_pm ? 'P' : 'A');
             
-            // Panel 2 (3rd Display): Date (e.g. "AUG 26  ")
-            char date_str[32] = "        ";
-            char month_buf[16] = {0};
-            strftime(month_buf, sizeof(month_buf), "%b", timeinfo);
-            for (int k = 0; month_buf[k]; k++) {
-                month_buf[k] = toupper((unsigned char)month_buf[k]);
-            }
-            snprintf(date_str, sizeof(date_str), "%3s %2d  ", month_buf, timeinfo->tm_mday);
+            // Panel 2 (3rd Display): Date (YYYYMMDD, e.g. "20260826")
+            char date_str[32];
+            snprintf(date_str, sizeof(date_str), "%04d%02d%02d",
+                     timeinfo->tm_year + 1900,
+                     timeinfo->tm_mon + 1,
+                     timeinfo->tm_mday);
             
             // Panel 3 (4th Display): Weather Temp & Humidity (e.g. " 22C 65H")
             char weather_str[32] = "        ";
