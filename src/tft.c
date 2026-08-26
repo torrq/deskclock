@@ -81,29 +81,6 @@ static void spi_write(uint8_t* data, size_t len) {
     ioctl(spi_fd, SPI_IOC_MESSAGE(1), &tr);
 }
 
-static void spi_write_bulk(uint8_t* data, size_t total_len) {
-    // Break into 4096 byte chunks within a single atomic SPI ioctl message
-    // so CS is held LOW for the entire frame transfer
-    int num_chunks = (total_len + 4095) / 4096;
-    struct spi_ioc_transfer tr[16];
-    if (num_chunks > 16) num_chunks = 16;
-    
-    for (int i = 0; i < num_chunks; i++) {
-        memset(&tr[i], 0, sizeof(struct spi_ioc_transfer));
-        size_t offset = i * 4096;
-        size_t len = total_len - offset;
-        if (len > 4096) len = 4096;
-        
-        tr[i].tx_buf = (unsigned long)(data + offset);
-        tr[i].len = len;
-        tr[i].speed_hz = 15000000;
-        tr[i].bits_per_word = 8;
-        tr[i].cs_change = 0; // Hold CS LOW continuously across chunks
-    }
-    
-    ioctl(spi_fd, SPI_IOC_MESSAGE(num_chunks), tr);
-}
-
 static void tft_command(uint8_t cmd) {
     dc_low();
     spi_write(&cmd, 1);
@@ -139,66 +116,18 @@ void tft_init(void) {
     uint32_t speed = 15000000;
     ioctl(spi_fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed);
 
-    // Robust ST7735R Init sequence (Initializes power controllers, charge pump and gamma)
+    // Init sequence for ST7735
     tft_command(0x01); // SWRESET
     usleep(150000);
     
     tft_command(0x11); // SLPOUT
-    usleep(255000);
+    usleep(500000);
     
-    tft_command(0xB1); // FRMCTR1 (Frame rate control normal mode)
-    tft_data(0x01); tft_data(0x2C); tft_data(0x2D);
+    tft_command(0x3A); // COLMOD
+    tft_data(0x05);    // 16-bit color
     
-    tft_command(0xB2); // FRMCTR2 (Frame rate control idle mode)
-    tft_data(0x01); tft_data(0x2C); tft_data(0x2D);
-    
-    tft_command(0xB3); // FRMCTR3 (Frame rate control partial mode)
-    tft_data(0x01); tft_data(0x2C); tft_data(0x2D);
-    tft_data(0x01); tft_data(0x2C); tft_data(0x2D);
-    
-    tft_command(0xB4); // INVCTR (Display inversion control)
-    tft_data(0x07);
-    
-    tft_command(0xC0); // PWCTR1 (Power control 1)
-    tft_data(0xA2); tft_data(0x02); tft_data(0x84);
-    
-    tft_command(0xC1); // PWCTR2 (Power control 2)
-    tft_data(0xC5);
-    
-    tft_command(0xC2); // PWCTR3 (Power control 3)
-    tft_data(0x0A); tft_data(0x00);
-    
-    tft_command(0xC3); // PWCTR4 (Power control 4)
-    tft_data(0x8A); tft_data(0x2A);
-    
-    tft_command(0xC4); // PWCTR5 (Power control 5)
-    tft_data(0x8A); tft_data(0xEE);
-    
-    tft_command(0xC5); // VMCTR1 (VCOM control 1)
-    tft_data(0x0E);
-    
-    tft_command(0x20); // INVOFF
-    
-    tft_command(0x36); // MADCTL (Orientation)
+    tft_command(0x36); // MADCTL
     tft_data(0x60);    // Landscape
-    
-    tft_command(0x3A); // COLMOD (16-bit RGB565)
-    tft_data(0x05);
-    
-    tft_command(0xE0); // GMCTRP1 (Gamma positive)
-    tft_data(0x02); tft_data(0x1C); tft_data(0x07); tft_data(0x12);
-    tft_data(0x37); tft_data(0x32); tft_data(0x29); tft_data(0x2D);
-    tft_data(0x29); tft_data(0x25); tft_data(0x2B); tft_data(0x39);
-    tft_data(0x00); tft_data(0x01); tft_data(0x03); tft_data(0x10);
-    
-    tft_command(0xE1); // GMCTRN1 (Gamma negative)
-    tft_data(0x03); tft_data(0x1D); tft_data(0x07); tft_data(0x06);
-    tft_data(0x2E); tft_data(0x2C); tft_data(0x29); tft_data(0x2D);
-    tft_data(0x2E); tft_data(0x2E); tft_data(0x37); tft_data(0x3F);
-    tft_data(0x00); tft_data(0x00); tft_data(0x02); tft_data(0x10);
-    
-    tft_command(0x13); // NORON
-    usleep(10000);
     
     tft_command(0x29); // DISPON
     usleep(100000);
@@ -235,16 +164,13 @@ void tft_fill(uint16_t color) {
 }
 
 void tft_update(void) {
-    uint8_t caset[4] = {0x00, 0x00, 0x00, 0x9F};
-    uint8_t raset[4] = {0x00, 0x00, 0x00, 0x7F};
-    
     tft_command(0x2A); // CASET
-    dc_high();
-    spi_write(caset, 4);
+    tft_data(0x00); tft_data(0x00);
+    tft_data(0x00); tft_data(0x9F); // 159
     
     tft_command(0x2B); // RASET
-    dc_high();
-    spi_write(raset, 4);
+    tft_data(0x00); tft_data(0x00);
+    tft_data(0x00); tft_data(0x7F); // 127
     
     tft_command(0x2C); // RAMWR
     
@@ -256,7 +182,14 @@ void tft_update(void) {
     }
     
     dc_high();
-    spi_write_bulk(buf, sizeof(buf));
+    
+    // SPI transfers usually have a limit (4096 bytes is typical)
+    int chunk_size = 4096;
+    for (int i = 0; i < sizeof(buf); i += chunk_size) {
+        int len = sizeof(buf) - i;
+        if (len > chunk_size) len = chunk_size;
+        spi_write(&buf[i], len);
+    }
 }
 
 void tft_draw_pixel(int x, int y, uint16_t color) {
