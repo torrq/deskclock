@@ -17,24 +17,22 @@ static void* video_loop(void* arg) {
     uint16_t frame_buf[VIDEO_FRAME_SIZE];
     
     while (running) {
-        printf("[Video Engine] Starting live stream pipeline at %d FPS (Gamma: %.2f)...\n", g_video_fps, g_camera_gamma);
-        
-        float ffmpeg_gamma = (g_camera_gamma > 0.1f) ? (1.0f / g_camera_gamma) : 0.45f;
+        printf("[Video Engine] Starting live stream pipeline at %d FPS...\n", g_video_fps);
         
         char pipeline_cmd[4096];
         if (strstr(g_camera_url, "youtube.com") || strstr(g_camera_url, "youtu.be")) {
             snprintf(pipeline_cmd, sizeof(pipeline_cmd),
                 "yt-dlp --extractor-args \"youtube:player_client=android,web\" -f worst --no-warnings -o - \"%s\" 2>/dev/null | "
-                "ffmpeg -nostats -loglevel error -i pipe:0 "
-                "-vf \"fps=%d,scale=160:128,eq=gamma=%.3f:contrast=1.15:saturation=1.3\" "
+                "ffmpeg -nostdin -nostats -loglevel error -i pipe:0 "
+                "-vf \"fps=%d,scale=160:128\" "
                 "-f rawvideo -pix_fmt rgb565le -",
-                g_camera_url, g_video_fps, ffmpeg_gamma);
+                g_camera_url, g_video_fps);
         } else {
             snprintf(pipeline_cmd, sizeof(pipeline_cmd),
-                "ffmpeg -nostats -loglevel error -i \"%s\" "
-                "-vf \"fps=%d,scale=160:128,eq=gamma=%.3f:contrast=1.15:saturation=1.3\" "
+                "ffmpeg -nostdin -nostats -loglevel error -i \"%s\" "
+                "-vf \"fps=%d,scale=160:128\" "
                 "-f rawvideo -pix_fmt rgb565le -",
-                g_camera_url, g_video_fps, ffmpeg_gamma);
+                g_camera_url, g_video_fps);
         }
         
         FILE* pipe = popen(pipeline_cmd, "r");

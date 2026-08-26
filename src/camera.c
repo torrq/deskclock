@@ -64,9 +64,9 @@ static void* camera_loop(void* arg) {
         int width, height, channels;
 
         if (strstr(g_camera_url, "youtube.com") || strstr(g_camera_url, "youtu.be")) { // YouTube Mode
-            char cmd[512];
-            snprintf(cmd, sizeof(cmd), "ffmpeg -y -i $(yt-dlp --extractor-args \"youtube:player_client=android,web\" -g -f worst --no-warnings \"%s\") -vframes 1 -q:v 2 /tmp/deskclock_camera.jpg > /dev/null 2>&1", g_camera_url);
-            printf("Executing YouTube command for %s\n", g_camera_url);
+            char cmd[1024];
+            snprintf(cmd, sizeof(cmd), "yt-dlp --extractor-args \"youtube:player_client=android,web\" -f worst --no-warnings -o - \"%s\" 2>/dev/null | ffmpeg -nostdin -y -i pipe:0 -vframes 1 -q:v 2 /tmp/deskclock_camera.jpg > /dev/null 2>&1", g_camera_url);
+            printf("Executing YouTube snapshot command for %s\n", g_camera_url);
             int ret = system(cmd);
             if (ret == 0) {
                 img_data = stbi_load("/tmp/deskclock_camera.jpg", &width, &height, &channels, 3);

@@ -84,6 +84,8 @@ int main(void) {
     signal(SIGINT, handle_sigint);
     signal(SIGTERM, handle_sigint);
     signal(SIGUSR1, handle_sigusr1);
+    signal(SIGTTOU, SIG_IGN);
+    signal(SIGTTIN, SIG_IGN);
 
     // Load config before initializing subsystems
     config_load("config.cfg");
