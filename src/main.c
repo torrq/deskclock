@@ -148,7 +148,7 @@ int main(void) {
             if (hour > 12) hour -= 12;
             
             char time_str[32];
-            snprintf(time_str, sizeof(time_str), "%2d-%02d  %c", hour, min, is_pm ? 'P' : 'A');
+            snprintf(time_str, sizeof(time_str), " %2d-%02d %c", hour, min, is_pm ? 'P' : 'A');
             
             time_t bot_raw = rawtime + (g_bottom_clock_offset * 3600);
             struct tm bot_info_buf;
@@ -161,7 +161,7 @@ int main(void) {
             if (m_hour > 12) m_hour -= 12;
             
             char time_str_bot[32];
-            snprintf(time_str_bot, sizeof(time_str_bot), "%2d-%02d  %c", m_hour, m_min, m_is_pm ? 'P' : 'A');
+            snprintf(time_str_bot, sizeof(time_str_bot), " %2d-%02d %c", m_hour, m_min, m_is_pm ? 'P' : 'A');
             
             // Panel 2 (3rd Display): Date (YY-MM-DD, e.g. "26-08-26")
             char date_str[32];
