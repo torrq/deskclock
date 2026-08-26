@@ -172,6 +172,8 @@ static void* camera_loop(void* arg) {
 
         for (int i = 0; i < g_camera_refresh_interval; i++) {
             if (!running) break;
+            int mode = get_current_mode();
+            if (mode != 1 && mode != 2) break; // Pause immediately if user switched away from camera mode
             sleep(1);
         }
     }
