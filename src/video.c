@@ -16,6 +16,7 @@ static bool running = false;
 extern int get_current_mode(void);
 
 static void* video_loop(void* arg) {
+    char stream_url[2048] = {0};
     uint16_t frame_buf[VIDEO_FRAME_SIZE];
     
     while (running) {
@@ -25,27 +26,51 @@ static void* video_loop(void* arg) {
             continue;
         }
 
-        printf("[Video Engine] Starting live stream pipeline at %d FPS...\n", g_video_fps);
+        stream_url[0] = '\0';
         
-        char pipeline_cmd[4096];
+        // 1. Resolve live stream URL
         if (strstr(g_camera_url, "youtube.com") || strstr(g_camera_url, "youtu.be")) {
-            snprintf(pipeline_cmd, sizeof(pipeline_cmd),
-                "yt-dlp --extractor-args \"youtube:player_client=android,web\" -f worst --no-warnings -o - \"%s\" 2>/dev/null | "
-                "ffmpeg -nostdin -nostats -loglevel error -i pipe:0 "
-                "-vf \"fps=%d,scale=160:128\" "
-                "-f rawvideo -pix_fmt rgb565le -",
-                g_camera_url, g_video_fps);
+            printf("[Video Engine] Resolving YouTube stream URL with yt-dlp...\n");
+            char ytdlp_cmd[512];
+            snprintf(ytdlp_cmd, sizeof(ytdlp_cmd), "yt-dlp --extractor-args \"youtube:player_client=android,web\" -g -f worst --no-warnings \"%s\"", g_camera_url);
+            
+            FILE* pipe = popen(ytdlp_cmd, "r");
+            if (pipe) {
+                while (fgets(stream_url, sizeof(stream_url), pipe) != NULL) {
+                    // Strip trailing newline/whitespace
+                    size_t len = strlen(stream_url);
+                    while (len > 0 && (stream_url[len - 1] == '\n' || stream_url[len - 1] == '\r')) {
+                        stream_url[--len] = '\0';
+                    }
+                    if (len > 0) break; // Take the video stream URL
+                }
+                pclose(pipe);
+            }
         } else {
-            snprintf(pipeline_cmd, sizeof(pipeline_cmd),
-                "ffmpeg -nostdin -nostats -loglevel error -i \"%s\" "
-                "-vf \"fps=%d,scale=160:128\" "
-                "-f rawvideo -pix_fmt rgb565le -",
-                g_camera_url, g_video_fps);
+            // Direct stream URL
+            strncpy(stream_url, g_camera_url, sizeof(stream_url) - 1);
+            stream_url[sizeof(stream_url) - 1] = '\0';
         }
         
-        FILE* pipe = popen(pipeline_cmd, "r");
-        if (!pipe) {
-            printf("[Video Engine] Failed to start pipeline.\n");
+        if (strlen(stream_url) == 0) {
+            printf("[Video Engine] Failed to obtain stream URL. Retrying in 5 seconds...\n");
+            for (int i = 0; i < 5 && running && get_current_mode() == 3; i++) sleep(1);
+            continue;
+        }
+        
+        printf("[Video Engine] Starting live stream pipe at %d FPS...\n", g_video_fps);
+        
+        char ffmpeg_cmd[3072];
+        snprintf(ffmpeg_cmd, sizeof(ffmpeg_cmd),
+            "ffmpeg -nostdin -nostats -loglevel error "
+            "-fflags +nobuffer+genpts+discardcorrupt -flags low_delay "
+            "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 "
+            "-i \"%s\" -vf \"fps=%d,scale=160:128\" -f rawvideo -pix_fmt rgb565le -",
+            stream_url, g_video_fps);
+        
+        FILE* ffmpeg_pipe = popen(ffmpeg_cmd, "r");
+        if (!ffmpeg_pipe) {
+            printf("[Video Engine] Failed to start ffmpeg process.\n");
             for (int i = 0; i < 5 && running && get_current_mode() == 3; i++) sleep(1);
             continue;
         }
@@ -57,13 +82,13 @@ static void* video_loop(void* arg) {
             uint8_t* ptr = (uint8_t*)frame_buf;
             
             while (bytes_read < target_bytes && running && get_current_mode() == 3) {
-                size_t r = fread(ptr + bytes_read, 1, target_bytes - bytes_read, pipe);
+                size_t r = fread(ptr + bytes_read, 1, target_bytes - bytes_read, ffmpeg_pipe);
                 if (r <= 0) break;
                 bytes_read += r;
             }
             
             if (bytes_read < target_bytes) {
-                printf("[Video Engine] Pipeline stream ended / disconnected.\n");
+                printf("[Video Engine] Stream disconnected / EOF reached.\n");
                 break;
             }
             
@@ -74,9 +99,9 @@ static void* video_loop(void* arg) {
             pthread_mutex_unlock(&video_mutex);
         }
         
-        if (pipe) {
-            pclose(pipe);
-            system("pkill -P $(pgrep -o deskclock) yt-dlp 2>/dev/null; pkill -P $(pgrep -o deskclock) ffmpeg 2>/dev/null");
+        if (ffmpeg_pipe) {
+            pclose(ffmpeg_pipe);
+            system("pkill -P $(pgrep -o deskclock) ffmpeg 2>/dev/null");
         }
         
         if (running && get_current_mode() == 3) {
