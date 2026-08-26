@@ -13,6 +13,7 @@
 #include "weather.h"
 #include "anim.h"
 #include "camera.h"
+#include "video.h"
 #include "config.h"
 #include "data.h"
 
@@ -22,11 +23,12 @@ enum TFTMode {
     MODE_ANIM = 0,
     MODE_CAM_TEXT = 1,
     MODE_CAM_CLEAN = 2,
-    MODE_OFF = 3
+    MODE_LIVE_VIDEO = 3,
+    MODE_OFF = 4
 };
 
-#define NUM_MODES 4
-static int mode_stack[NUM_MODES] = {MODE_ANIM, MODE_CAM_TEXT, MODE_CAM_CLEAN, MODE_OFF};
+#define NUM_MODES 5
+static int mode_stack[NUM_MODES] = {MODE_ANIM, MODE_CAM_TEXT, MODE_CAM_CLEAN, MODE_LIVE_VIDEO, MODE_OFF};
 static int display_mode_idx = 0;
 
 int get_current_mode() {
@@ -37,13 +39,15 @@ void init_mode_stack() {
     if (g_start_screen == 1) { // camera
         mode_stack[0] = MODE_CAM_TEXT;
         mode_stack[1] = MODE_CAM_CLEAN;
-        mode_stack[2] = MODE_OFF;
-        mode_stack[3] = MODE_ANIM;
+        mode_stack[2] = MODE_LIVE_VIDEO;
+        mode_stack[3] = MODE_OFF;
+        mode_stack[4] = MODE_ANIM;
     } else { // animations
         mode_stack[0] = MODE_ANIM;
         mode_stack[1] = MODE_CAM_TEXT;
         mode_stack[2] = MODE_CAM_CLEAN;
-        mode_stack[3] = MODE_OFF;
+        mode_stack[3] = MODE_LIVE_VIDEO;
+        mode_stack[4] = MODE_OFF;
     }
 }
 
@@ -56,6 +60,7 @@ void apply_display_mode() {
         case MODE_ANIM:
         case MODE_CAM_TEXT:
         case MODE_CAM_CLEAN:
+        case MODE_LIVE_VIDEO:
             tft_sleep(0);
             break;
         case MODE_OFF:
@@ -88,6 +93,7 @@ int main(void) {
     anim_init();
     weather_init();
     camera_init();
+    video_init();
     
     int last_sec = -1;
     int last_btn_state = 1;
@@ -314,12 +320,21 @@ int main(void) {
             tft_draw_text(hum_x, 114, hum_text, 0x07FF, 2); // Cyan, 2x scale
             
             tft_update();
+        } else if (get_current_mode() == MODE_LIVE_VIDEO) {
+            pthread_mutex_lock(&video_mutex);
+            memcpy(tft_buffer, video_frame, sizeof(video_frame));
+            if (!video_updated) {
+                tft_draw_text(30, 60, "STARTING STREAM", 0xFFFF, 1);
+            }
+            pthread_mutex_unlock(&video_mutex);
+            tft_update();
         }
         
         usleep(100000); // 10 FPS
     }
     
     printf("Shutting down...\n");
+    video_shutdown();
     camera_shutdown();
     weather_shutdown();
     tft_shutdown();

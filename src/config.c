@@ -10,6 +10,7 @@ char g_weather_url[256] = DEFAULT_WEATHER_URL;
 
 char g_camera_url[256] = DEFAULT_CAMERA_URL;
 int g_camera_refresh_interval = DEFAULT_CAMERA_REFRESH_INTERVAL;
+int g_video_fps = DEFAULT_VIDEO_FPS;
 
 int g_max7219_displays = DEFAULT_MAX7219_DISPLAYS;
 int g_bottom_clock_offset = DEFAULT_BOTTOM_CLOCK_OFFSET;
@@ -65,6 +66,9 @@ void config_load(const char* filepath) {
                 g_weather_url[sizeof(g_weather_url) - 1] = '\0';
             } else if (strcmp(key, "CAMERA_REFRESH_INTERVAL") == 0) {
                 g_camera_refresh_interval = atoi(value);
+            } else if (strcmp(key, "VIDEO_FPS") == 0) {
+                g_video_fps = atoi(value);
+                if (g_video_fps <= 0) g_video_fps = 10;
             } else if (strcmp(key, "CAMERA_URL") == 0) {
                 strncpy(g_camera_url, value, sizeof(g_camera_url) - 1);
                 g_camera_url[sizeof(g_camera_url) - 1] = '\0';

@@ -37,6 +37,9 @@ CAMERA_REFRESH_INTERVAL=300
 # All other links will be fetched directly as standard HTTP JPEGs.
 CAMERA_URL=https://imgproxy.windy.com/_/full/plain/current/1575920021/original.jpg
 
+# Frame rate for continuous YouTube Live Video mode (default: 10 FPS)
+VIDEO_FPS=10
+
 # The Gamma correction curve applied to the camera image to fix washed-out colors on the TFT screen.
 # 1.0 = No correction (Linear). 2.2 = Standard sRGB correction (Recommended).
 CAMERA_GAMMA=2.2

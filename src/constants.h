@@ -6,6 +6,7 @@
 
 #define DEFAULT_CAMERA_URL "https://imgproxy.windy.com/_/full/plain/current/1575920021/original.jpg"
 #define DEFAULT_CAMERA_REFRESH_INTERVAL 300
+#define DEFAULT_VIDEO_FPS 10
 
 #define DEFAULT_MAX7219_DISPLAYS 4
 #define DEFAULT_BOTTOM_CLOCK_OFFSET 8
