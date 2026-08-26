@@ -168,7 +168,7 @@ int main(void) {
                 snprintf(ip_scroll_text, sizeof(ip_scroll_text), "        IP %s        ", current_ip);
                 ip_scroll_active = true;
                 ip_scroll_start_ms = now_ms;
-                printf("[Button] 2s Hold detected! Scrolling IP '%s' for 120s on bottom LED panel.\n", current_ip);
+                printf("[Button] 2s Hold detected! Scrolling IP '%s' for 30s on bottom LED panel.\n", current_ip);
             }
         } else if (btn == 1 && last_btn_state == 0) { // Released edge
             if (!long_press_triggered && (now_ms - btn_press_start_ms >= 50)) {
@@ -217,9 +217,9 @@ int main(void) {
         // Panel 3 (4th Display): Weather or IP Scroll
         char weather_str[32] = "        ";
         if (ip_scroll_active) {
-            if (now_ms - ip_scroll_start_ms > 120000) { // 120s expired
+            if (now_ms - ip_scroll_start_ms > 30000) { // 30s expired
                 ip_scroll_active = false;
-                printf("[Button] IP scroll ended after 120s, reverting to weather.\n");
+                printf("[Button] IP scroll ended after 30s, reverting to weather.\n");
             } else {
                 int text_len = strlen(ip_scroll_text);
                 if (text_len > 8) {
