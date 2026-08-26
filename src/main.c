@@ -8,6 +8,9 @@
 #include <time.h>
 #include <pthread.h>
 #include <signal.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "tft.h"
 #include "max7219.h"
 #include "weather.h"
@@ -18,6 +21,30 @@
 #include "data.h"
 
 static bool running = true;
+
+static void get_local_ip(char* buffer, size_t maxlen) {
+    strncpy(buffer, "NO IP", maxlen - 1);
+    buffer[maxlen - 1] = '\0';
+
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock < 0) return;
+
+    struct sockaddr_in serv;
+    memset(&serv, 0, sizeof(serv));
+    serv.sin_family = AF_INET;
+    serv.sin_addr.s_addr = inet_addr("8.8.8.8");
+    serv.sin_port = htons(53);
+
+    if (connect(sock, (const struct sockaddr*)&serv, sizeof(serv)) == 0) {
+        struct sockaddr_in name;
+        socklen_t namelen = sizeof(name);
+        if (getsockname(sock, (struct sockaddr*)&name, &namelen) == 0) {
+            const char* p = inet_ntop(AF_INET, &name.sin_addr, buffer, maxlen);
+            if (!p) strncpy(buffer, "NO IP", maxlen - 1);
+        }
+    }
+    close(sock);
+}
 
 enum TFTMode {
     MODE_ANIM = 0,
@@ -115,9 +142,14 @@ int main(void) {
     camera_init();
     video_init();
     
-    int last_sec = -1;
     int last_btn_state = 1;
     uint32_t last_press_tick = 0;
+    
+    int click_count = 0;
+    uint32_t last_click_ms = 0;
+    bool ip_scroll_active = false;
+    uint32_t ip_scroll_start_ms = 0;
+    char ip_scroll_text[128] = {0};
     
     while (running) {
         int btn = get_button_state();
@@ -126,9 +158,28 @@ int main(void) {
         uint32_t now_ms = (uint32_t)(now.tv_sec * 1000 + now.tv_nsec / 1000000);
         
         if (btn == 0 && last_btn_state == 1) { // Falling edge (pressed)
-            if (now_ms - last_press_tick > 300) { // 300ms software debounce
+            if (now_ms - last_press_tick > 120) { // 120ms debounce for rapid clicking
                 last_press_tick = now_ms;
-                handle_sigusr1(SIGUSR1);
+                
+                if (click_count == 0 || (now_ms - last_click_ms > 600)) {
+                    click_count = 1;
+                } else {
+                    click_count++;
+                }
+                last_click_ms = now_ms;
+                
+                if (click_count >= 4) {
+                    // 4 fast clicks detected!
+                    char current_ip[64] = {0};
+                    get_local_ip(current_ip, sizeof(current_ip));
+                    snprintf(ip_scroll_text, sizeof(ip_scroll_text), "        IP %s        ", current_ip);
+                    ip_scroll_active = true;
+                    ip_scroll_start_ms = now_ms;
+                    click_count = 0;
+                    printf("[Button] 4 fast clicks! Scrolling IP '%s' for 120s on bottom LED panel.\n", current_ip);
+                } else {
+                    handle_sigusr1(SIGUSR1);
+                }
             }
         }
         last_btn_state = btn;
@@ -138,40 +189,52 @@ int main(void) {
         struct tm timeinfo_buf;
         struct tm * timeinfo = localtime_r(&rawtime, &timeinfo_buf);
         
-        if (last_sec != timeinfo->tm_sec) {
-            last_sec = timeinfo->tm_sec;
-            
-            int hour = timeinfo->tm_hour;
-            int min = timeinfo->tm_min;
-            int is_pm = (hour >= 12);
-            if (hour == 0) hour = 12;
-            if (hour > 12) hour -= 12;
-            
-            char time_str[32];
-            snprintf(time_str, sizeof(time_str), " %2d-%02d %c", hour, min, is_pm ? 'P' : 'A');
-            
-            time_t bot_raw = rawtime + (g_bottom_clock_offset * 3600);
-            struct tm bot_info_buf;
-            struct tm * bot_info = gmtime_r(&bot_raw, &bot_info_buf);
-            
-            int m_hour = bot_info->tm_hour;
-            int m_min = bot_info->tm_min;
-            int m_is_pm = (m_hour >= 12);
-            if (m_hour == 0) m_hour = 12;
-            if (m_hour > 12) m_hour -= 12;
-            
-            char time_str_bot[32];
-            snprintf(time_str_bot, sizeof(time_str_bot), " %2d-%02d %c", m_hour, m_min, m_is_pm ? 'P' : 'A');
-            
-            // Panel 2 (3rd Display): Date (YY-MM-DD, e.g. "26-08-26")
-            char date_str[32];
-            snprintf(date_str, sizeof(date_str), "%02d-%02d-%02d",
-                     (timeinfo->tm_year + 1900) % 100,
-                     timeinfo->tm_mon + 1,
-                     timeinfo->tm_mday);
-            
-            // Panel 3 (4th Display): Weather Temp & Humidity (Temp far left, Humidity far right, e.g. "22c  65h")
-            char weather_str[32] = "        ";
+        int hour = timeinfo->tm_hour;
+        int min = timeinfo->tm_min;
+        int is_pm = (hour >= 12);
+        if (hour == 0) hour = 12;
+        if (hour > 12) hour -= 12;
+        
+        char time_str[32];
+        snprintf(time_str, sizeof(time_str), " %2d-%02d %c", hour, min, is_pm ? 'P' : 'A');
+        
+        time_t bot_raw = rawtime + (g_bottom_clock_offset * 3600);
+        struct tm bot_info_buf;
+        struct tm * bot_info = gmtime_r(&bot_raw, &bot_info_buf);
+        
+        int m_hour = bot_info->tm_hour;
+        int m_min = bot_info->tm_min;
+        int m_is_pm = (m_hour >= 12);
+        if (m_hour == 0) m_hour = 12;
+        if (m_hour > 12) m_hour -= 12;
+        
+        char time_str_bot[32];
+        snprintf(time_str_bot, sizeof(time_str_bot), " %2d-%02d %c", m_hour, m_min, m_is_pm ? 'P' : 'A');
+        
+        // Panel 2 (3rd Display): Date (YY-MM-DD, e.g. "26-08-26")
+        char date_str[32];
+        snprintf(date_str, sizeof(date_str), "%02d-%02d-%02d",
+                 (timeinfo->tm_year + 1900) % 100,
+                 timeinfo->tm_mon + 1,
+                 timeinfo->tm_mday);
+        
+        // Panel 3 (4th Display): Weather or IP Scroll
+        char weather_str[32] = "        ";
+        if (ip_scroll_active) {
+            if (now_ms - ip_scroll_start_ms > 120000) { // 120s expired
+                ip_scroll_active = false;
+                printf("[Button] IP scroll ended after 120s, reverting to weather.\n");
+            } else {
+                int text_len = strlen(ip_scroll_text);
+                if (text_len > 8) {
+                    int pos = ((now_ms - ip_scroll_start_ms) / 250) % (text_len - 8 + 1);
+                    strncpy(weather_str, ip_scroll_text + pos, 8);
+                    weather_str[8] = '\0';
+                }
+            }
+        }
+        
+        if (!ip_scroll_active) {
             pthread_mutex_lock(&g_weather_data.mutex);
             if (g_weather_data.updated) {
                 char temp_buf[16] = {0};
@@ -194,22 +257,22 @@ int main(void) {
                 snprintf(weather_str, sizeof(weather_str), "---   --");
             }
             pthread_mutex_unlock(&g_weather_data.mutex);
-            
-            uint8_t digits[4][8] = {{0}};
-            for (int i = 0; i < 8; i++) {
-                digits[0][i] = SEGMENT_MAP[(uint8_t)time_str[i]];
-                digits[1][i] = SEGMENT_MAP[(uint8_t)time_str_bot[i]];
-                digits[2][i] = SEGMENT_MAP[(uint8_t)date_str[i]];
-                digits[3][i] = SEGMENT_MAP[(uint8_t)weather_str[i]];
+        }
+        
+        uint8_t digits[4][8] = {{0}};
+        for (int i = 0; i < 8; i++) {
+            digits[0][i] = SEGMENT_MAP[(uint8_t)time_str[i]];
+            digits[1][i] = SEGMENT_MAP[(uint8_t)time_str_bot[i]];
+            digits[2][i] = SEGMENT_MAP[(uint8_t)date_str[i]];
+            digits[3][i] = SEGMENT_MAP[(uint8_t)weather_str[i]];
+        }
+        
+        for (int i = 0; i < 8; i++) {
+            uint8_t data[4] = {0};
+            for (int d = 0; d < g_max7219_displays && d < 4; d++) {
+                data[d] = digits[d][i];
             }
-            
-            for (int i = 0; i < 8; i++) {
-                uint8_t data[4] = {0};
-                for (int d = 0; d < g_max7219_displays && d < 4; d++) {
-                    data[d] = digits[d][i];
-                }
-                max7219_write_cmd_chain(8 - i, data, g_max7219_displays);
-            }
+            max7219_write_cmd_chain(8 - i, data, g_max7219_displays);
         }
         
         if (get_current_mode() == MODE_CAM_TEXT || get_current_mode() == MODE_CAM_CLEAN) {
