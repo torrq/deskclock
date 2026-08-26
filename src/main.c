@@ -78,6 +78,18 @@ void apply_display_mode() {
 void handle_sigusr1(int sig) {
     display_mode_idx = (display_mode_idx + 1) % NUM_MODES;
     apply_display_mode();
+    
+    const char* mode_names[] = {
+        "Weather Animation",
+        "Camera Snapshot (with text)",
+        "Camera Snapshot (clean)",
+        "Live Video Stream",
+        "Screen Off"
+    };
+    int m = get_current_mode();
+    if (m >= 0 && m < NUM_MODES) {
+        printf("[Display Mode] Switched to: %s\n", mode_names[m]);
+    }
 }
 
 int main(void) {
@@ -105,11 +117,19 @@ int main(void) {
     
     int last_sec = -1;
     int last_btn_state = 1;
+    uint32_t last_press_tick = 0;
     
     while (running) {
         int btn = get_button_state();
+        struct timespec now;
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        uint32_t now_ms = (uint32_t)(now.tv_sec * 1000 + now.tv_nsec / 1000000);
+        
         if (btn == 0 && last_btn_state == 1) { // Falling edge (pressed)
-            handle_sigusr1(SIGUSR1);
+            if (now_ms - last_press_tick > 300) { // 300ms software debounce
+                last_press_tick = now_ms;
+                handle_sigusr1(SIGUSR1);
+            }
         }
         last_btn_state = btn;
         

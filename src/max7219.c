@@ -55,8 +55,8 @@ static inline void set_pin(int pin, int val) {
 }
 
 static inline void delay_ns(void) {
-    // Calibrated delay for Pi 3 (~250ns for solid 2-4MHz MAX7219 bitbang)
-    for (volatile int k = 0; k < 150; k++);
+    // Calibrated delay for Pi 3 (~500ns for rock-solid 1MHz MAX7219 bitbang)
+    for (volatile int k = 0; k < 350; k++);
 }
 
 static inline void shift_out(uint8_t val) {
@@ -69,7 +69,7 @@ static inline void shift_out(uint8_t val) {
         }
         delay_ns();
         
-        // Toggle CLK
+        // Toggle CLK (Rising edge latches data)
         GPIO_SET = 1 << CLK_PIN;
         delay_ns();
         GPIO_CLR = 1 << CLK_PIN;
@@ -99,6 +99,7 @@ void max7219_init(void) {
 }
 
 void max7219_write_cmd_chain(uint8_t reg, uint8_t data_list[], int num_displays) {
+    GPIO_CLR = 1 << CLK_PIN;
     GPIO_CLR = 1 << CS_PIN;
     delay_ns();
     for (int i = num_displays - 1; i >= 0; i--) {
@@ -107,6 +108,7 @@ void max7219_write_cmd_chain(uint8_t reg, uint8_t data_list[], int num_displays)
     }
     delay_ns();
     GPIO_SET = 1 << CS_PIN;
+    GPIO_CLR = 1 << DIN_PIN;
     delay_ns();
 }
 
