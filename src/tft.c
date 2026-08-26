@@ -116,18 +116,66 @@ void tft_init(void) {
     uint32_t speed = 15000000;
     ioctl(spi_fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed);
 
-    // Init sequence for ST7735
+    // Robust ST7735R Init sequence (Initializes power controllers, charge pump and gamma)
     tft_command(0x01); // SWRESET
     usleep(150000);
     
     tft_command(0x11); // SLPOUT
-    usleep(500000);
+    usleep(255000);
     
-    tft_command(0x3A); // COLMOD
-    tft_data(0x05);    // 16-bit color
+    tft_command(0xB1); // FRMCTR1 (Frame rate control normal mode)
+    tft_data(0x01); tft_data(0x2C); tft_data(0x2D);
     
-    tft_command(0x36); // MADCTL
+    tft_command(0xB2); // FRMCTR2 (Frame rate control idle mode)
+    tft_data(0x01); tft_data(0x2C); tft_data(0x2D);
+    
+    tft_command(0xB3); // FRMCTR3 (Frame rate control partial mode)
+    tft_data(0x01); tft_data(0x2C); tft_data(0x2D);
+    tft_data(0x01); tft_data(0x2C); tft_data(0x2D);
+    
+    tft_command(0xB4); // INVCTR (Display inversion control)
+    tft_data(0x07);
+    
+    tft_command(0xC0); // PWCTR1 (Power control 1)
+    tft_data(0xA2); tft_data(0x02); tft_data(0x84);
+    
+    tft_command(0xC1); // PWCTR2 (Power control 2)
+    tft_data(0xC5);
+    
+    tft_command(0xC2); // PWCTR3 (Power control 3)
+    tft_data(0x0A); tft_data(0x00);
+    
+    tft_command(0xC3); // PWCTR4 (Power control 4)
+    tft_data(0x8A); tft_data(0x2A);
+    
+    tft_command(0xC4); // PWCTR5 (Power control 5)
+    tft_data(0x8A); tft_data(0xEE);
+    
+    tft_command(0xC5); // VMCTR1 (VCOM control 1)
+    tft_data(0x0E);
+    
+    tft_command(0x20); // INVOFF
+    
+    tft_command(0x36); // MADCTL (Orientation)
     tft_data(0x60);    // Landscape
+    
+    tft_command(0x3A); // COLMOD (16-bit RGB565)
+    tft_data(0x05);
+    
+    tft_command(0xE0); // GMCTRP1 (Gamma positive)
+    tft_data(0x02); tft_data(0x1C); tft_data(0x07); tft_data(0x12);
+    tft_data(0x37); tft_data(0x32); tft_data(0x29); tft_data(0x2D);
+    tft_data(0x29); tft_data(0x25); tft_data(0x2B); tft_data(0x39);
+    tft_data(0x00); tft_data(0x01); tft_data(0x03); tft_data(0x10);
+    
+    tft_command(0xE1); // GMCTRN1 (Gamma negative)
+    tft_data(0x03); tft_data(0x1D); tft_data(0x07); tft_data(0x06);
+    tft_data(0x2E); tft_data(0x2C); tft_data(0x29); tft_data(0x2D);
+    tft_data(0x2E); tft_data(0x2E); tft_data(0x37); tft_data(0x3F);
+    tft_data(0x00); tft_data(0x00); tft_data(0x02); tft_data(0x10);
+    
+    tft_command(0x13); // NORON
+    usleep(10000);
     
     tft_command(0x29); // DISPON
     usleep(100000);
