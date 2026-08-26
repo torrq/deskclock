@@ -141,10 +141,10 @@ int main(void) {
             char time_str_bot[32];
             snprintf(time_str_bot, sizeof(time_str_bot), "%2d %02d  %c", m_hour, m_min, m_is_pm ? 'P' : 'A');
             
-            // Panel 2 (3rd Display): Date (YYYYMMDD, e.g. "20260826")
+            // Panel 2 (3rd Display): Date (YY-MM-DD, e.g. "26-08-26")
             char date_str[32];
-            snprintf(date_str, sizeof(date_str), "%04d%02d%02d",
-                     timeinfo->tm_year + 1900,
+            snprintf(date_str, sizeof(date_str), "%02d-%02d-%02d",
+                     (timeinfo->tm_year + 1900) % 100,
                      timeinfo->tm_mon + 1,
                      timeinfo->tm_mday);
             
