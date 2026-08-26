@@ -55,8 +55,8 @@ static inline void set_pin(int pin, int val) {
 }
 
 static inline void delay_ns(void) {
-    // 50ns minimum for MAX7219, a small volatile loop is sufficient
-    for(volatile int k = 0; k < 5; k++);
+    // Calibrated delay for Pi 3 (~250ns for solid 2-4MHz MAX7219 bitbang)
+    for (volatile int k = 0; k < 150; k++);
 }
 
 static inline void shift_out(uint8_t val) {
@@ -87,6 +87,7 @@ void max7219_init(void) {
     set_pin(CS_PIN, 1);
     set_pin(CLK_PIN, 0);
     set_pin(DIN_PIN, 0);
+    delay_ns();
     
     // Initialize matrices
     max7219_send_command_all(0x09, 0x00, g_max7219_displays); // No decode
@@ -99,20 +100,26 @@ void max7219_init(void) {
 
 void max7219_write_cmd_chain(uint8_t reg, uint8_t data_list[], int num_displays) {
     GPIO_CLR = 1 << CS_PIN;
+    delay_ns();
     for (int i = num_displays - 1; i >= 0; i--) {
         shift_out(reg);
         shift_out(data_list[i]);
     }
+    delay_ns();
     GPIO_SET = 1 << CS_PIN;
+    delay_ns();
 }
 
 void max7219_send_command_all(uint8_t reg, uint8_t value, int num_displays) {
     GPIO_CLR = 1 << CS_PIN;
+    delay_ns();
     for (int i = 0; i < num_displays; i++) {
         shift_out(reg);
         shift_out(value);
     }
+    delay_ns();
     GPIO_SET = 1 << CS_PIN;
+    delay_ns();
 }
 
 void max7219_clear(int num_displays) {
