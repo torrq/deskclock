@@ -77,6 +77,14 @@ static inline void shift_out(uint8_t val) {
     }
 }
 
+void max7219_resync(void) {
+    max7219_send_command_all(0x09, 0x00, g_max7219_displays); // No decode
+    max7219_send_command_all(0x0A, 0x01, g_max7219_displays); // Low intensity
+    max7219_send_command_all(0x0B, 0x07, g_max7219_displays); // Scan limit 8
+    max7219_send_command_all(0x0C, 0x01, g_max7219_displays); // Normal operation
+    max7219_send_command_all(0x0F, 0x00, g_max7219_displays); // Disable display test
+}
+
 void max7219_init(void) {
     setup_io();
     
@@ -90,11 +98,7 @@ void max7219_init(void) {
     delay_ns();
     
     // Initialize matrices
-    max7219_send_command_all(0x09, 0x00, g_max7219_displays); // No decode
-    max7219_send_command_all(0x0A, 0x01, g_max7219_displays); // Low intensity
-    max7219_send_command_all(0x0B, 0x07, g_max7219_displays); // Scan limit 8
-    max7219_send_command_all(0x0C, 0x01, g_max7219_displays); // Normal operation
-    max7219_send_command_all(0x0F, 0x00, g_max7219_displays); // Disable display test
+    max7219_resync();
     max7219_clear(g_max7219_displays);
 }
 

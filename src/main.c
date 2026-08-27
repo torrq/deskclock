@@ -200,6 +200,12 @@ int main(void) {
         struct tm timeinfo_buf;
         struct tm * timeinfo = localtime_r(&rawtime, &timeinfo_buf);
         
+        static int last_sec = -1;
+        if (last_sec != timeinfo->tm_sec) {
+            last_sec = timeinfo->tm_sec;
+            max7219_resync();
+        }
+        
         int hour = timeinfo->tm_hour;
         int min = timeinfo->tm_min;
         int is_pm = (hour >= 12);
