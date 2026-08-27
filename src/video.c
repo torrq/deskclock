@@ -50,8 +50,7 @@ static void* video_loop(void* arg) {
             }
         } else {
             // Direct stream URL
-            strncpy(stream_url, g_camera_url, sizeof(stream_url) - 1);
-            stream_url[sizeof(stream_url) - 1] = '\0';
+            snprintf(stream_url, sizeof(stream_url), "%s", g_camera_url);
         }
         
         if (strlen(stream_url) == 0) {

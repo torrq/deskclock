@@ -23,8 +23,7 @@
 static bool running = true;
 
 static void get_local_ip(char* buffer, size_t maxlen) {
-    strncpy(buffer, "NO IP", maxlen - 1);
-    buffer[maxlen - 1] = '\0';
+    snprintf(buffer, maxlen, "NO IP");
 
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) return;
@@ -256,8 +255,8 @@ int main(void) {
             if (g_weather_data.updated) {
                 char temp_buf[16] = {0};
                 char hum_buf[16] = {0};
-                strncpy(temp_buf, g_weather_data.temp, sizeof(temp_buf) - 1);
-                strncpy(hum_buf, g_weather_data.hum, sizeof(hum_buf) - 1);
+                snprintf(temp_buf, sizeof(temp_buf), "%s", g_weather_data.temp);
+                snprintf(hum_buf, sizeof(hum_buf), "%s", g_weather_data.hum);
                 
                 for (int k = 0; temp_buf[k]; k++) {
                     if (temp_buf[k] == 'C') temp_buf[k] = 'c';
